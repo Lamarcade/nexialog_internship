@@ -1,0 +1,504 @@
+Name;Colonne1;Colonne2
+Agilent Technologies Inc;AA;A
+American Airlines Group Inc;B;AAL
+Advance Auto Parts Inc;AA;AAP
+Apple Inc;BBB;AAPL
+Abbvie Inc;BBB;ABBV
+Amerisourcebergen Corp;AA;ABC
+Abbott Laboratories;BBB;ABT
+Arch Capital Group Ltd;BBB;ACGL
+Accenture Plc Cl A;AA;ACN
+Adobe Inc;AAA;ADBE
+Analog Devices Inc;BBB;ADI
+Archer Daniels Midland Co;AA;ADM
+Automatic Data Processing;AAA;ADP
+Autodesk Inc;AAA;ADSK
+Ameren Corporation;A;AEE
+American Electric Power;A;AEP
+Aes Corp;AA;AES
+Aflac Inc;BBB;AFL
+American International Group;BBB;AIG
+Assurant Inc;A;AIZ
+Arthur J Gallagher & Co;BBB;AJG
+Akamai Technologies Inc;AA;AKAM
+Albemarle Corp;A;ALB
+Align Technology Inc;A;ALGN
+Alaska Air Group Inc;BBB;ALK
+Allstate Corp;BBB;ALL
+Allegion Plc;AA;ALLE
+Applied Materials Inc;AAA;AMAT
+Amcor Plc;AA;AMCR
+Advanced Micro Devices;AA;AMD
+Ametek Inc;BBB;AME
+Amgen Inc;AA;AMGN
+Ameriprise Financial Inc;A;AMP
+American Tower Corp;AA;AMT
+Amazon.com Inc;BBB;AMZN
+Arista Networks Inc;A;ANET
+Ansys Inc;AA;ANSS
+Aon Plc Class A;BBB;AON
+Smith (a.O.) Corp;BBB;AOS
+Apa Corp;A;APA
+Air Products & Chemicals Inc;BBB;APD
+Amphenol Corp Cl A;A;APH
+Aptiv Plc;AA;APTV
+Alexandria Real Estate Equit;BBB;ARE
+Atmos Energy Corp;A;ATO
+Activision Blizzard Inc;;ATVI
+Avalonbay Communities Inc;A;AVB
+Broadcom Inc;A;AVGO
+Avery Dennison Corp;AA;AVY
+American Water Works Co Inc;AA;AWK
+Axon Enterprise Inc;AA;AXON
+American Express Co;AA;AXP
+Autozone Inc;A;AZO
+Boeing Co;BBB;BA
+Bank of America Corp;A;BAC
+Ball Corp;AA;BALL
+Baxter International Inc;A;BAX
+Bath & Body Works Inc;A;BBWI
+Best Buy Co Inc;AAA;BBY
+Becton Dickinson and Co;BBB;BDX
+Franklin Resources Inc;A;BEN
+Brown Forman Corp Class B;AA;BF.B
+Bunge Ltd;AAA;BG
+Biogen Inc;AAA;BIIB
+Bio Rad Laboratories A;BBB;BIO
+Bank of New York Mellon Corp;AA;BK
+Booking Holdings Inc;A;BKNG
+Baker Hughes Co;AA;BKR
+Blackrock Inc;A;BLK
+Bristol Myers Squibb Co;A;BMY
+Broadridge Financial Solutio;AAA;BR
+Berkshire Hathaway Inc Cl B;BB;BRK-A
+Brown & Brown Inc;BBB;BRO
+Boston Scientific Corp;BBB;BSX
+Borgwarner Inc;A;BWA
+Boston Properties Inc;AA;BXP
+Citigroup Inc;A;C
+Conagra Brands Inc;AA;CAG
+Cardinal Health Inc;AA;CAH
+Carrier Global Corp;AA;CARR
+Caterpillar Inc;A;CAT
+Chubb Ltd;BBB;CB
+Cboe Global Markets Inc;A;CBOE
+Cbre Group Inc A;AAA;CBRE
+Crown Castle Inc;AAA;CCI
+Carnival Corp;B;CCL
+Ceridian Hcm Holding Inc;;CDAY
+Cadence Design Sys Inc;AA;CDNS
+Cdw Corp/de;A;CDW
+Celanese Corp;BBB;CE
+Constellation Energy;BBB;CEG
+Cf Industries Holdings Inc;BBB;CF
+Citizens Financial Group;A;CFG
+Church & Dwight Co Inc;AA;CHD
+C.H. Robinson Worldwide Inc;AAA;CHRW
+Charter Communications Inc A;BBB;CHTR
+The Cigna Group;AA;CI
+Cincinnati Financial Corp;BB;CINF
+Colgate Palmolive Co;A;CL
+Clorox Company;AAA;CLX
+Comerica Inc;;CMA
+Comcast Corp Class A;BBB;CMCSA
+Cme Group Inc;BBB;CME
+Chipotle Mexican Grill Inc;BBB;CMG
+Cummins Inc;AAA;CMI
+Cms Energy Corp;AA;CMS
+Centene Corp;AA;CNC
+Centerpoint Energy Inc;A;CNP
+Capital One Financial Corp;A;COF
+Cooper Cos Inc;AA;COO
+Conocophillips;AA;COP
+Costco Wholesale Corp;A;COST
+Campbell Soup Co;AA;CPB
+Copart Inc;A;CPRT
+Camden Property Trust;BBB;CPT
+Charles River Laboratories;BBB;CRL
+Salesforce Inc;AA;CRM
+Cisco Systems Inc;AA;CSCO
+Costar Group Inc;BB;CSGP
+Csx Corp;A;CSX
+Cintas Corp;A;CTAS
+Catalent Inc;A;CTLT
+Coterra Energy Inc;BBB;CTRA
+Cognizant Tech Solutions A;A;CTSH
+Corteva Inc;BBB;CTVA
+Cvs Health Corp;BBB;CVS
+Chevron Corp;A;CVX
+Caesars Entertainment Inc;A;CZR
+Dominion Energy Inc;AA;D
+Delta Air Lines Inc;AA;DAL
+Dupont De Nemours Inc;A;DD
+Deere & Co;AA;DE
+Discover Financial Services;AA;DFS
+Dollar General Corp;A;DG
+Quest Diagnostics Inc;AAA;DGX
+Dr Horton Inc;A;DHI
+Danaher Corp;AA;DHR
+Walt Disney Co;A;DIS
+Digital Realty Trust Inc;AA;DLR
+Dollar Tree Inc;A;DLTR
+Dover Corp;AA;DOV
+Dow Inc;AA;DOW
+Domino S Pizza Inc;BBB;DPZ
+Darden Restaurants Inc;BBB;DRI
+Dte Energy Company;AA;DTE
+Duke Energy Corp;AA;DUK
+Davita Inc;AA;DVA
+Devon Energy Corp;A;DVN
+Dxc Technology Co;;DXC
+Dexcom Inc;A;DXCM
+Electronic Arts Inc;AA;EA
+Ebay Inc;A;EBAY
+Ecolab Inc;AAA;ECL
+Consolidated Edison Inc;A;ED
+Equifax Inc;BBB;EFX
+Everest Group Ltd;BBB;EG
+Edison International;A;EIX
+Estee Lauder Companies Cl A;A;EL
+Elevance Health Inc;AA;ELV
+Eastman Chemical Co;A;EMN
+Emerson Electric Co;A;EMR
+Enphase Energy Inc;AA;ENPH
+Eog Resources Inc;A;EOG
+Epam Systems Inc;BBB;EPAM
+Equinix Inc;AA;EQIX
+Equity Residential;BB;EQR
+Eqt Corp;AA;EQT
+Eversource Energy;AA;ES
+Essex Property Trust Inc;BB;ESS
+Eaton Corp Plc;A;ETN
+Entergy Corp;A;ETR
+Etsy Inc;A;ETSY
+Evergy Inc;A;EVRG
+Edwards Lifesciences Corp;AAA;EW
+Exelon Corp;AA;EXC
+Expeditors Intl Wash Inc;AAA;EXPD
+Expedia Group Inc;B;EXPE
+Extra Space Storage Inc;BB;EXR
+Ford Motor Co;BB;F
+Diamondback Energy Inc;A;FANG
+Fastenal Co;A;FAST
+Freeport Mcmoran Inc;BBB;FCX
+Factset Research Systems Inc;AA;FDS
+Fedex Corp;A;FDX
+Firstenergy Corp;BBB;FE
+F5 Inc;A;FFIV
+Fiserv Inc;A;FI
+Fair Isaac Corp;AA;FICO
+Fidelity National Info Serv;AA;FIS
+Fifth Third Bancorp;A;FITB
+Fleetcor Technologies Inc;BB;FLT
+Fmc Corp;A;FMC
+Fox Corp Class B;A;FOX
+Fox Corp Class A;A;FOXA
+Federal Realty Invs Trust;;FRT
+First Solar Inc;AA;FSLR
+Fortinet Inc;BBB;FTNT
+Fortrea Holdings Inc;;FTRE
+Fortive Corp;AA;FTV
+General Dynamics Corp;A;GD
+General Electric Co;;GE
+Ge Healthcare Technology;A;GEHC
+Gen Digital Inc;AA;GEN
+Gilead Sciences Inc;AAA;GILD
+General Mills Inc;AAA;GIS
+Globe Life Inc;BB;GL
+Corning Inc;BBB;GLW
+General Motors Co;BBB;GM
+Generac Holdings Inc;;GNRC
+Alphabet Inc Cl C;BBB;GOOG
+Alphabet Inc Cl A;BBB;GOOGL
+Genuine Parts Co;A;GPC
+Global Payments Inc;BBB;GPN
+Garmin Ltd;BBB;GRMN
+Goldman Sachs Group Inc;A;GS
+Ww Grainger Inc;AAA;GWW
+Halliburton Co;A;HAL
+Hasbro Inc;AAA;HAS
+Huntington Bancshares Inc;AA;HBAN
+Hca Healthcare Inc;AA;HCA
+Home Depot Inc;AA;HD
+Hess Corp;AAA;HES
+Hartford Financial Svcs Grp;;HIG
+Huntington Ingalls Industrie;AA;HII
+Hilton Worldwide Holdings In;A;HLT
+Hologic Inc;AA;HOLX
+Honeywell International Inc;AA;HON
+Hewlett Packard Enterprise;AAA;HPE
+Hp Inc;AA;HPQ
+Hormel Foods Corp;AA;HRL
+Henry Schein Inc;AA;HSIC
+Host Hotels & Resorts Inc;A;HST
+Hershey Co;A;HSY
+Humana Inc;A;HUM
+Howmet Aerospace Inc;BBB;HWM
+Intl Business Machines Corp;AA;IBM
+Intercontinental Exchange In;A;ICE
+Idexx Laboratories Inc;AAA;IDXX
+Idex Corp;AA;IEX
+Intl Flavors & Fragrances;AA;IFF
+Illumina Inc;A;ILMN
+Incyte Corp;A;INCY
+Intel Corp;AAA;INTC
+Intuit Inc;AAA;INTU
+Invitation Homes Inc;BBB;INVH
+International Paper Co;;IP
+Interpublic Group of Cos Inc;AA;IPG
+Iqvia Holdings Inc;AA;IQV
+Ingersoll Rand Inc;AA;IR
+Iron Mountain Inc;AA;IRM
+Intuitive Surgical Inc;A;ISRG
+Gartner Inc;AA;IT
+Illinois Tool Works;A;ITW
+Invesco Ltd;;IVZ
+Jacobs Solutions Inc;A;J
+Hunt (Jb) Transprt Svcs Inc;AA;JBHT
+Johnson Controls Internation;AA;JCI
+Jack Henry & Associates Inc;A;JKHY
+Johnson & Johnson;A;JNJ
+Juniper Networks Inc;AA;JNPR
+Jpmorgan Chase & Co;A;JPM
+Kellogg Co;;K
+Keurig Dr Pepper Inc;AA;KDP
+Keycorp;A;KEY
+Keysight Technologies In;AAA;KEYS
+Kraft Heinz Co;AA;KHC
+Kimco Realty Corp;BBB;KIM
+Kla Corp;A;KLAC
+Kimberly Clark Corp;AA;KMB
+Kinder Morgan Inc;AA;KMI
+Carmax Inc;AA;KMX
+Coca Cola Co;AAA;KO
+Kroger Co;AA;KR
+Loews Corp;BB;L
+Leidos Holdings Inc;A;LDOS
+Lennar Corp A;BB;LEN
+Laboratory Crp of Amer Hldgs;AA;LH
+L3harris Technologies Inc;AA;LHX
+Linde Plc;A;LIN
+Lkq Corp;AAA;LKQ
+Eli Lilly & Co;A;LLY
+Lockheed Martin Corp;AA;LMT
+Lincoln National Corp;;LNC
+Alliant Energy Corp;AA;LNT
+Lowe S Cos Inc;;LOW
+Lam Research Corp;AAA;LRCX
+Southwest Airlines Co;BB;LUV
+Las Vegas Sands Corp;BBB;LVS
+Lamb Weston Holdings Inc;AA;LW
+Lyondellbasell Indu Cl A;AA;LYB
+Live Nation Entertainment In;BB;LYV
+Mastercard Inc A;AA;MA
+Mid America Apartment Comm;BBB;MAA
+Marriott International Cl A;BBB;MAR
+Masco Corp;BBB;MAS
+Mcdonald S Corp;;MCD
+Microchip Technology Inc;A;MCHP
+Mckesson Corp;AA;MCK
+Moody S Corp;;MCO
+Mondelez International Inc A;A;MDLZ
+Medtronic Plc;BBB;MDT
+Metlife Inc;A;MET
+Meta Platforms Inc Class A;B;META
+Mgm Resorts International;BBB;MGM
+Mohawk Industries Inc;;MHK
+Mccormick & Co Non Vtg Shrs;AA;MKC
+Marketaxess Holdings Inc;AA;MKTX
+Martin Marietta Materials;A;MLM
+Marsh & Mclennan Cos;A;MMC
+3m Co W/d;AAA;MMM
+Monster Beverage Corp;BB;MNST
+Altria Group Inc;A;MO
+Molina Healthcare Inc;AA;MOH
+Mosaic Co;A;MOS
+Marathon Petroleum Corp;A;MPC
+Monolithic Power Systems Inc;BBB;MPWR
+Merck & Co. Inc.;A;MRK
+Moderna Inc;BBB;MRNA
+Marathon Oil Corp;A;MRO
+Morgan Stanley;AA;MS
+Msci Inc;;MSCI
+Microsoft Corp;AAA;MSFT
+Motorola Solutions Inc;A;MSI
+M & T Bank Corp;BBB;MTB
+Match Group Inc;BB;MTCH
+Mettler Toledo International;AA;MTD
+Micron Technology Inc;A;MU
+Norwegian Cruise Line Holdin;;NCLH
+Nasdaq Inc;AA;NDAQ
+Nordson Corp;A;NDSN
+Nextera Energy Inc;AA;NEE
+Newmont Corp;AA;NEM
+Netflix Inc;BB;NFLX
+Nisource Inc;AAA;NI
+Nike Inc Cl B;BB;NKE
+Northrop Grumman Corp;AA;NOC
+Servicenow Inc;AA;NOW
+Nrg Energy Inc;BB;NRG
+Norfolk Southern Corp;A;NSC
+Netapp Inc;AA;NTAP
+Northern Trust Corp;AA;NTRS
+Nucor Corp;AA;NUE
+Nvidia Corp;AAA;NVDA
+Nvr Inc;A;NVR
+Newell Brands Inc;;NWL
+News Corp Class B;BB;NWS
+News Corp Class A;BB;NWSA
+Nxp Semiconductors Nv;AAA;NXPI
+Realty Income Corp;BBB;O
+Old Dominion Freight Line;AA;ODFL
+Organon & Co;;OGN
+Oneok Inc;AAA;OKE
+Omnicom Group;BBB;OMC
+On Semiconductor;A;ON
+Oracle Corp;A;ORCL
+O Reilly Automotive Inc;BB;ORLY
+Otis Worldwide Corp;A;OTIS
+Occidental Petroleum Corp;A;OXY
+Palo Alto Networks Inc;AA;PANW
+Paramount Global Class B;A;PARA
+Paycom Software Inc;A;PAYC
+Paychex Inc;AA;PAYX
+Paccar Inc;BBB;PCAR
+P G & E Corp;BBB;PCG
+Healthpeak Properties Inc;A;PEAK
+Public Service Enterprise Gp;AAA;PEG
+Pepsico Inc;AA;PEP
+Pfizer Inc;A;PFE
+Principal Financial Group;A;PFG
+Procter & Gamble Co;A;PG
+Progressive Corp;A;PGR
+Parker Hannifin Corp;BBB;PH
+Pultegroup Inc;A;PHM
+Packaging Corp of America;BBB;PKG
+Prologis Inc;A;PLD
+Philip Morris International;BBB;PM
+Pnc Financial Services Group;AA;PNC
+Pentair Plc;AAA;PNR
+Pinnacle West Capital;;PNW
+Insulet Corp;AA;PODD
+Pool Corp;AA;POOL
+Ppg Industries Inc;AA;PPG
+Ppl Corp;BBB;PPL
+Prudential Financial Inc;AA;PRU
+Public Storage;A;PSA
+Phillips 66;AA;PSX
+Ptc Inc;AA;PTC
+Quanta Services Inc;;PWR
+Pioneer Natural Resources Co;AA;PXD
+Paypal Holdings Inc;A;PYPL
+Qualcomm Inc;A;QCOM
+Qorvo Inc;A;QRVO
+Royal Caribbean Cruises Ltd;BB;RCL
+Regency Centers Corp;A;REG
+Regeneron Pharmaceuticals;A;REGN
+Regions Financial Corp;AA;RF
+Robert Half Inc;AA;RHI
+Raymond James Financial Inc;A;RJF
+Ralph Lauren Corp;;RL
+Resmed Inc;A;RMD
+Rockwell Automation Inc;AA;ROK
+Rollins Inc;BBB;ROL
+Roper Technologies Inc;BBB;ROP
+Ross Stores Inc;BBB;ROST
+Republic Services Inc;A;RSG
+Rtx Corp;A;RTX
+Revvity Inc;A;RVTY
+Sba Communications Corp;AA;SBAC
+Starbucks Corp;A;SBUX
+Schwab (Charles) Corp;BBB;SCHW
+Solaredge Technologies Inc;;SEDG
+Sealed Air Corp;;SEE
+Sherwin Williams Co;A;SHW
+Jm Smucker Co;A;SJM
+Schlumberger Ltd;AA;SLB
+Snap on Inc;BBB;SNA
+Synopsys Inc;AA;SNPS
+Southern Co;AA;SO
+Simon Property Group Inc;BBB;SPG
+S&p Global Inc;AA;SPGI
+Sempra;A;SRE
+Steris Plc;AA;STE
+Steel Dynamics Inc;AA;STLD
+State Street Corp;AA;STT
+Seagate Technology Holdings;AA;STX
+Constellation Brands Inc A;A;STZ
+Stanley Black & Decker Inc;BBB;SWK
+Skyworks Solutions Inc;A;SWKS
+Synchrony Financial;AA;SYF
+Stryker Corp;BBB;SYK
+Sysco Corp;A;SYY
+At&t Inc;BBB;T
+Molson Coors Beverage Co B;AAA;TAP
+Transdigm Group Inc;BB;TDG
+Teledyne Technologies Inc;A;TDY
+Bio Techne Corp;A;TECH
+Te Connectivity Ltd;A;TEL
+Teradyne Inc;A;TER
+Truist Financial Corp;A;TFC
+Teleflex Inc;AA;TFX
+Target Corp;AA;TGT
+Tjx Companies Inc;A;TJX
+Thermo Fisher Scientific Inc;BBB;TMO
+T Mobile Us Inc;BB;TMUS
+Tapestry Inc;;TPR
+Targa Resources Corp;AA;TRGP
+Trimble Inc;AA;TRMB
+T Rowe Price Group Inc;BBB;TROW
+Travelers Cos Inc;A;TRV
+Tractor Supply Company;AA;TSCO
+Tesla Inc;A;TSLA
+Tyson Foods Inc Cl A;BBB;TSN
+Trane Technologies Plc;;TT
+Take Two Interactive Softwre;A;TTWO
+Texas Instruments Inc;AAA;TXN
+Textron Inc;A;TXT
+Tyler Technologies Inc;BBB;TYL
+United Airlines Holdings Inc;;UAL
+Udr Inc;BB;UDR
+Universal Health Services B;CCC;UHS
+Ulta Beauty Inc;AA;ULTA
+Unitedhealth Group Inc;AA;UNH
+Union Pacific Corp;AA;UNP
+United Parcel Service Cl B;A;UPS
+United Rentals Inc;AA;URI
+Us Bancorp;A;USB
+Visa Inc Class a Shares;A;V
+Vf Corp;AAA;VFC
+Vici Properties Inc;BBB;VICI
+Valero Energy Corp;A;VLO
+Vulcan Materials Co;A;VMC
+Verisk Analytics Inc;A;VRSK
+Verisign Inc;A;VRSN
+Vertex Pharmaceuticals Inc;A;VRTX
+Ventas Inc;A;VTR
+Viatris Inc;BB;VTRS
+Verizon Communications Inc;AA;VZ
+Wabtec Corp;A;WAB
+Waters Corp;AAA;WAT
+Walgreens Boots Alliance Inc;AA;WBA
+Warner Bros Discovery Inc;BBB;WBD
+Western Digital Corp;AA;WDC
+Wec Energy Group Inc;AA;WEC
+Welltower Inc;AA;WELL
+Wells Fargo & Co;BB;WFC
+Whirlpool Corp;;WHR
+Waste Management Inc;A;WM
+Williams Cos Inc;A;WMB
+Walmart Inc;BBB;WMT
+Wr Berkley Corp;BB;WRB
+Westrock Co;A;WRK
+West Pharmaceutical Services;AA;WST
+Willis Towers Watson Plc;A;WTW
+Weyerhaeuser Co;AA;WY
+Wynn Resorts Ltd;BB;WYNN
+Xcel Energy Inc;AA;XEL
+Dentsply Sirona Inc;;XRAY
+Xylem Inc;AAA;XYL
+Yum Brands Inc;BBB;YUM
+Zimmer Biomet Holdings Inc;AA;ZBH
+Zebra Technologies Corp Cl A;A;ZBRA
+Zions Bancorp Na;;ZION
+Zoetis Inc;AAA;ZTS

@@ -37,7 +37,7 @@ def get_scores(path = 'Scores/'):
     REm['Constituent RIC'] = SP['Tag'].copy()
     
     # The Refinitiv dataset has a NaN row at index 503
-    if (len(RE) == 504):
+    if (len(REm) == 504):
         REm.drop(REm.index[-1], inplace=True)
     
     return MS, SU, SP, REm

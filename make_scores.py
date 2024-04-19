@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 29 15:07:41 2024
+Created on Thu Apr 18 11:29:40 2024
 
 @author: LoïcMARCADET
 """
@@ -13,26 +13,23 @@ import seaborn as sns
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.mixture import GaussianMixture
 
-from scores_utils import *
+from ESG.scores_utils import *
 
 plt.close('all') 
 
 #%% Retrieve dataframes
 
-MS, SU, SP, RE = get_scores()
+MS, SU, SP, RE = get_scores('ESG/Scores/')
 MSS, SUS, SPS, RES = reduced_df(MS, SU, SP, RE)
-scores = get_score_df()
-scores_valid, valid_indices = keep_valid()
-std_scores = standardise_df()
-scores_ranks = scores_valid.copy()
-scores_ranks = scores_ranks.rank()
 
 # All the agencies
-dict_agencies = {'SU': SUS['Score'], 'SP' : SPS['Score'], 'RE': RES['Score']}
+dict_agencies = {'MSCI': MSS['Score'],'SU': SUS['Score'], 'SP' : SPS['Score'], 'RE': RES['Score']}
 
-#triplet = std_scores[:,1:4]
-
-#triplet_df = pd.DataFrame(triplet, columns = dict_agencies.keys())
+scores = get_score_df(dict_agencies)
+scores_valid, valid_indices = keep_valid(scores)
+std_scores = standardise_df(scores)
+scores_ranks = scores_valid.copy()
+scores_ranks = scores_ranks.rank()
 
 #%% Clustering methods
 
@@ -97,71 +94,20 @@ clusters = cluster_hierarchical(n_classes = 7)
 kclusters = kmeans(n_classes = 7)
 gaussian_classes, taumax = classify_gaussian_mixture(n_classes = 7, class_proportions=None, n_mix = 50)
 
-#%% Plot classes
+#%% Make a target variable
 
-cmap = 'GnBu_d'
-sns.set_theme(style="darkgrid")
-plt.plot()
-sns.histplot(data = gaussian_classes, x = 'labels', hue = 'labels', palette = cmap, legend = False)
+mean_ranks = gaussian_classes.groupby('labels').mean()
+global_mean_ranks = mean_ranks.mean(axis = 1)
+global_mean_ranks = global_mean_ranks.sort_values()
 
-plt.plot()
-s = sns.pairplot(gaussian_classes, hue = 'labels', corner = True)
-plt.savefig("Figures/gmm_classes.png")
+sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
 
-plt.plot()
-sns.pairplot(clusters, hue = 'labels', corner = True)
-plt.savefig("Figures/h_clusters.png")
+# Create a mapping dictionary from original labels to sorted labels
+label_mapping = {label: rank for rank, label in enumerate(sorted_labels, start=1)}
 
-plt.plot()
-sns.pairplot(kclusters, hue = 'labels', corner = True)
-plt.savefig("Figures/k_clusters.png")
+# Map the labels in the original DataFrame according to the sorted order
+gaussian_classes['sorted_labels'] = gaussian_classes['labels'].map(label_mapping)
 
+ESGTV = pd.DataFrame({'Tag':MSS['Tag'],'Score':gaussian_classes['sorted_labels']})
 
-#%% Kendall tau for clusters
-
-tauC = 0
-for agency in dict_agencies:
-    tauC += kendalltau(dict_agencies[agency][valid_indices], kclusters['labels'], variant = 'c').statistic / len(dict_agencies)
-    
-tauH = 0
-for agency in dict_agencies:
-    tauH += kendalltau(dict_agencies[agency][valid_indices], clusters['labels'], variant = 'c').statistic / len(dict_agencies)
-    
-#%% Ranks
-
-gauss_ranks = gaussian_classes.copy()
-
-# Calculate rank of scores within each label class
-
-def add_mean_rank(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
-    for agency in agencies:
-        name = 'rank_' + agency
-        df[name] = gauss_ranks[agency].rank()
-        mr = df[[name, labels_column]].groupby(labels_column).mean().to_dict()[name]
-        df['mean_'+name] = df[labels_column].map(mr)
-    return None
-
-def get_mean_ranks(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
-    rank_df = pd.DataFrame(columns = agencies)
-    dfc = df.copy()
-    for agency in agencies:
-        dfc['rank'] = gauss_ranks[agency].rank()
-        mr = dfc[['rank', labels_column]].groupby(labels_column).mean().to_dict()['rank']
-        rank_df[agency] = mr
-        rank_df['cluster_mean_rank'] = rank_df.mean(axis=1)
-    return rank_df
-
-def get_std_ranks(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
-    rank_df = pd.DataFrame(columns = agencies)
-    dfc = df.copy()
-    for agency in agencies:
-        dfc['rank'] = gauss_ranks[agency].rank()
-        mr = dfc[['rank', labels_column]].groupby(labels_column).std().to_dict()['rank']
-        rank_df[agency] = mr
-        rank_df['cluster_mean_rank'] = rank_df.mean(axis=1)
-    return rank_df
-
-mean_ranks = get_mean_ranks()
-std_ranks = get_std_ranks()
-
-#%%
+ESGTV.dropna(inplace = True)

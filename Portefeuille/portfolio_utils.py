@@ -21,11 +21,12 @@ def rf_var(sigma):
 #%%
 get_var = lambda weights, sigma: weights.T.dot((sigma)).dot(weights)
 get_std = lambda weights, sigma: np.sqrt(weights.T.dot((sigma)).dot(weights))
-get_return = lambda weights, mu, R0=0: weights.T.dot(mu)
+get_return = lambda weights, mu: weights.T.dot(mu)
 
 getsig = lambda w, sigma: np.sqrt(w@sigma@w)
 getmu = lambda w, mu: w@mu
 
+get_ret = lambda w0,w,mu,rf : w.dot(mu) + w0*rf
 #get_ESG = lambda weights, ESGs: weights.dot(ESGs) / sum(weights)
 
 def get_ESG(weights, ESGs, rf):
@@ -37,7 +38,7 @@ def get_ESG(weights, ESGs, rf):
     else:
         return weights.dot(ESGs) / sum(weights)
     
-get_sharpe = lambda mus, stds, R0: [(mus[i] - R0)/stds[i] for i in range(len(stds))] 
+get_sharpe = lambda mus, stds, rf: [(mus[i] - rf)/stds[i] for i in range(len(stds))] 
 
 
 def mean_variance(weights, mu, sigma, c):
@@ -51,17 +52,17 @@ def mean_variance_inv(weights, mu, sigma, gamma):
 def mvESG(weights, mu, sigma, ESGs, rf, c, ESG_pref):
     return c/2 * get_var(weights, sigma) - get_return(weights,mu) - ESG_pref(get_ESG(weights,ESGs, rf))
 
-def sharpe(weights, mu, sigma, R0):
-    return (get_return(weights, mu) - R0) / np.sqrt(get_var(weights,sigma))
+def sharpe(weights, mu, sigma, rf):
+    return (get_return(weights, mu) - rf) / np.sqrt(get_var(weights,sigma))
 
-def sharpe2(weights, mu, sigma, R0):
-    return (getmu(weights, mu) - R0) / getsig(weights,sigma)
+def sharpe2(weights, mu, sigma, rf):
+    return (getmu(weights, mu) - rf) / getsig(weights,sigma)
 #%% Efficient frontiers with and without a risk-free asset
-def efficient_frontier(mu, sigma, R0, num_points=100, min_risk_tol = -0.5, max_risk_tol = 1):
+def efficient_frontier(mu, sigma, rf, num_points=100, min_risk_tol = -0.5, max_risk_tol = 1, short_sales = False, V0 = 1):
     n = len(mu)
     results = []
     
-    # Optimize the portfolio for different risk aversions
+    # Optimize the portfolio for different risk tolerances
     for c in np.linspace(min_risk_tol, max_risk_tol, num_points):  
         
         # Objective function 
@@ -71,10 +72,12 @@ def efficient_frontier(mu, sigma, R0, num_points=100, min_risk_tol = -0.5, max_r
         init_weights = np.ones(n) / n
 
         # The sum of weights must be equal to 1
-        constraint = LinearConstraint(np.ones(n), lb=1.0, ub=1.0)
+        constraint = LinearConstraint(np.ones(n), lb=V0, ub=V0)
 
         # Weights must be between 0 and 1
         bounds = [(0.0, 1.0) for _ in range(n)]
+        if short_sales:
+            bounds = [(-1.0, 1.0) for _ in range(n)]
 
         result = minimize(objective, init_weights, method='SLSQP', constraints=constraint, bounds=bounds)
 
@@ -88,12 +91,80 @@ def efficient_frontier(mu, sigma, R0, num_points=100, min_risk_tol = -0.5, max_r
 
     return results
 
+def ef2(mu, sigma, rf, num_points=100, min_std = 0.001, max_std = 0.18, short_sales = False, V0 = 1):
+    n = len(mu)
+    results = []
+    
+    getstd = lambda w: get_std(w,sigma)
+    # Optimize the portfolio for different risk tolerances
+    for c in np.linspace(min_std, max_std, num_points):  
+        
+        # Objective function 
+        objective = lambda w: -get_return(w, mu)
+
+        # Initial guess
+        init_weights = np.ones(n) / n
+
+        # The sum of weights must be equal to V0
+        constraint = LinearConstraint(np.ones(n), lb=V0, ub=V0)
+        c2 = NonlinearConstraint(getstd, lb = 0, ub = c)
+
+        # Weights must be between 0 and 1
+        bounds = [(0.0, 1.0) for _ in range(n)]
+        if short_sales:
+            bounds = [(-1.0, 1.0) for _ in range(n)]
+
+        result = minimize(objective, init_weights, method='SLSQP', constraints=[constraint,c2], bounds=bounds)
+
+        if result.success:
+            res_weights = result.x
+            
+            # Get the risk and return of the frontier portfolio
+            portfolio_return_value = get_return(res_weights, mu)
+            portfolio_risk_value = np.sqrt(get_var(res_weights, sigma))
+            results.append((portfolio_risk_value, portfolio_return_value))
+
+    return results
+
+def ef3(mu, sigma, rf, num_points=100, min_ret = 0.003, max_ret = 0.04, short_sales = False, V0 = 1):
+    n = len(mu)
+    results = []
+    
+    # Optimize the portfolio for different risk tolerances
+    for c in np.linspace(min_ret, max_ret, num_points):  
+        
+        # Objective function 
+        objective = lambda w: get_std(w,sigma)
+
+        # Initial guess
+        init_weights = np.ones(n) / n
+
+        # The sum of weights must be equal to V0
+        constraint = LinearConstraint(np.ones(n), lb=V0, ub=V0)
+        c2 = LinearConstraint(mu, lb = c, ub = 1000)
+
+        # Weights must be between 0 and 1
+        bounds = [(0.0, 1.0) for _ in range(n)]
+        if short_sales:
+            bounds = [(-1.0, 1.0) for _ in range(n)]
+
+        result = minimize(objective, init_weights, method='SLSQP', constraints=[constraint,c2], bounds=bounds)
+
+        if result.success:
+            res_weights = result.x
+            
+            # Get the risk and return of the frontier portfolio
+            portfolio_return_value = get_return(res_weights, mu)
+            portfolio_risk_value = np.sqrt(get_var(res_weights, sigma))
+            results.append((portfolio_risk_value, portfolio_return_value))
+
+    return results
 #%% Find the optimal portfolio by maximizing the Sharpe ratio
-def optim_sharpe(mu, sigma, R0):
+def optim_sharpe(mu, sigma, rf):
     n = len(mu)
     
     # Objective function: minimize minus the Sharpe ratio
-    objective = lambda w: -sharpe(w, mu, sigma, R0)
+    objective = lambda w: -sharpe(w, mu, sigma, rf)
 
     init_weights = np.ones(n) / n
 
@@ -114,13 +185,13 @@ def optim_sharpe(mu, sigma, R0):
 
     return std, ret
 
-def optim_sharpe_esg(mu, sigma, ESGs, R0, low_ESG, up_ESG, num_points = 100):
+def optim_sharpe_esg(mu, sigma, ESGs, rf, low_ESG, up_ESG, num_points = 100):
     n = len(mu)
     
-    get_ESG_restr = lambda weights: get_ESG(weights, ESGs, R0)
+    get_ESG_restr = lambda weights: get_ESG(weights, ESGs, rf)
     
     # Objective function: minimize minus the Sharpe ratio
-    objective = lambda w: -sharpe(w, mu, sigma,R0)
+    objective = lambda w: -sharpe(w, mu, sigma,rf)
 
     init_weights = np.ones(n) / n
 
@@ -142,7 +213,7 @@ def optim_sharpe_esg(mu, sigma, ESGs, R0, low_ESG, up_ESG, num_points = 100):
         portfolio_return_value = get_return(res_weights, mu)
         portfolio_risk_value = np.sqrt(get_var(res_weights, sigma))
         std, ret = portfolio_risk_value, portfolio_return_value
-        res_esg.append(get_ESG(res_weights, ESGs, R0))
+        res_esg.append(get_ESG(res_weights, ESGs, rf))
 
     return std, ret, res_esg
 
@@ -150,12 +221,12 @@ def capital_market_line(rf, tangent_ret, tangent_std, std_range):
     return(rf + std_range * (tangent_ret - rf)/ tangent_std)
 
 #%% Efficient frontier with constraints on the ESG score
-def target_esg_frontier(mu, sigma, ESGs, R0, low_ESG, up_ESG, num_points = 100):
+def target_esg_frontier(mu, sigma, ESGs, rf, low_ESG, up_ESG, num_points = 100):
     n = len(mu)
     results = []
     # Function to use in the non-linear constraint
     # Note : It is linear by using a matrix of ESG weights
-    get_ESG_restr = lambda weights: get_ESG(weights, ESGs, R0)
+    get_ESG_restr = lambda weights: get_ESG(weights, ESGs, rf)
     
     for c in np.linspace(0.0, 8.0, num_points):  
         
@@ -181,7 +252,7 @@ def target_esg_frontier(mu, sigma, ESGs, R0, low_ESG, up_ESG, num_points = 100):
     return results
 
 #%% Get the Sharpe ratio-ESG frontier
-def esg_frontier(mu, sigma, ESGs, R0, ESG_pref, num_points = 100):
+def esg_frontier(mu, sigma, ESGs, rf, ESG_pref, num_points = 100):
     n = len(mu)
     results = []
     res_esg = []
@@ -190,7 +261,7 @@ def esg_frontier(mu, sigma, ESGs, R0, ESG_pref, num_points = 100):
     for c in np.linspace(0.0, 8.0, num_points):  
         
         # Objective function is the negative mean-variance-ESG tradeoff
-        objective = lambda w: mvESG(w, mu, sigma, ESGs, R0, c, ESG_pref)
+        objective = lambda w: mvESG(w, mu, sigma, ESGs, rf, c, ESG_pref)
     
         init_weights = np.ones(n) / n
     
@@ -205,7 +276,7 @@ def esg_frontier(mu, sigma, ESGs, R0, ESG_pref, num_points = 100):
             portfolio_return_value = get_return(res_weights, mu)
             portfolio_risk_value = np.sqrt(get_var(res_weights, sigma))
             results.append((portfolio_risk_value, portfolio_return_value))
-            res_esg.append(get_ESG(res_weights, ESGs, R0))
+            res_esg.append(get_ESG(res_weights, ESGs, rf))
     
     return results, res_esg
 

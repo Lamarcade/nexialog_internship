@@ -1,0 +1,12 @@
+Donnéss souhaitées sur les entreprises:
+
+Nombre d'entreprises
+
+Indicateurs :
+- Scope d'émissions, score E par date, total CO2 / Millions revenus, CO2eq total et scopes 1,2,3
+- Données bilans
+
+Format et taux de complétude par année
+Profondeur historique, le plus loin possible
+Stats sur historique
+Stats par secteur

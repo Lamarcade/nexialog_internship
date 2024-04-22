@@ -91,6 +91,41 @@ def efficient_frontier(mu, sigma, rf, num_points=100, min_risk_tol = -0.5, max_r
 
     return results
 
+def efficient_jac(mu, sigma, rf, num_points=100, min_risk_tol = -0.5, max_risk_tol = 1, short_sales = False, V0 = 1):
+    n = len(mu)
+    results = []
+    
+    # Optimize the portfolio for different risk tolerances
+    for c in np.linspace(min_risk_tol, max_risk_tol, num_points):  
+        
+        # Objective function 
+        objective = lambda w: mean_variance_inv(w, mu, sigma, c)
+
+        # Initial guess
+        init_weights = np.ones(n) / n
+
+        # The sum of weights must be equal to 1
+        constraint = LinearConstraint(np.ones(n), lb=V0, ub=V0)
+
+        # Weights must be between 0 and 1
+        bounds = [(0.0, 1.0) for _ in range(n)]
+        if short_sales:
+            bounds = [(-1.0, 1.0) for _ in range(n)]
+
+        jac = lambda w: sigma.dot(w) - c*mu
+        #hess = lambda w:sigma
+        result = minimize(objective, init_weights, method='SLSQP', jac = jac, constraints=constraint, bounds=bounds)
+
+        if result.success:
+            res_weights = result.x
+            
+            # Get the risk and return of the frontier portfolio
+            portfolio_return_value = get_return(res_weights, mu)
+            portfolio_risk_value = np.sqrt(get_var(res_weights, sigma))
+            results.append((portfolio_risk_value, portfolio_return_value))
+
+    return results
+
 def ef2(mu, sigma, rf, num_points=100, min_std = 0.001, max_std = 0.18, short_sales = False, V0 = 1):
     n = len(mu)
     results = []
@@ -170,7 +205,7 @@ def optim_sharpe(mu, sigma, rf):
 
     constraint = LinearConstraint(np.ones(n), lb=1.0, ub=1.0)
 
-    bounds = [(0.0, 1.0) for _ in range(n)]
+    bounds = [(-1.0, 1.0) for _ in range(n)]
 
     result = minimize(objective, init_weights, method='SLSQP', constraints=constraint, bounds=bounds)
 

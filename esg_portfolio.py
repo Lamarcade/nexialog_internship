@@ -46,7 +46,7 @@ tv_tickers = tv_filtered['Tag'].tolist()
 mr_filtered = monthly_returns.loc[:, monthly_returns.columns.isin(tv_tickers)]
 
 #%%
-n_assets = 5
+n_assets = 200
 mr = mr_filtered.iloc[:, :n_assets]
 
 means = np.array(mr.mean(axis = 0))
@@ -68,46 +68,56 @@ f = lambda s: s/10
 g = lambda s: s+1
 
 #%%
-# Standard efficient frontier with a risk-free asset
-ef_points = ef3(means_rf, cov_rf, rf, 100, short_sales = True)
+# Standard efficient frontier without a risk-free asset
+ef_points = efficient_jac(means, cov, rf, min_risk_tol=0, num_points = 100, short_sales = True)
 stds, mus = [p[0] for p in ef_points], [p[1] for p in ef_points]
 sh = get_sharpe(mus, stds, rf)
 
+# Standard efficient frontier with a risk-free asset
+ef_points_rf = efficient_jac(means_rf, cov_rf, rf, min_risk_tol = 0, num_points = 100, short_sales = True)
+stds_rf, mus_rf = [p[0] for p in ef_points_rf], [p[1] for p in ef_points_rf]
+sh_rf = get_sharpe(mus_rf, stds_rf, rf)
+
 # Risk and return of the optimal portfolio
-tangent_std, tangent_ret = optim_sharpe(means_rf, cov_rf, rf)
+tangent_std, tangent_ret = optim_sharpe(means, cov, rf)
+tangent_std_rf, tangent_ret_rf = optim_sharpe(means_rf, cov_rf, rf)
 
 std_range = np.arange(0.001, 0.20, 0.01)
 cml = capital_market_line(rf,tangent_ret, tangent_std, std_range)
 
+# =============================================================================
+# # Dirichlet distribution for the frontier close to the origin    
+# dir_avg = np.ones(n_assets+1)
+# dir_avg[0] = n_assets
+# 
+# # Dirichlet distribution for the frontier in the upper-right part
+# profit_idx = np.argmax(means_rf)
+# dir0_avg = np.ones(n_assets+1)
+# dir0_avg[profit_idx] = n_assets
+# 
+# # Random weights to verify the efficient frontier
+# random_sigma, random_mu = random_weights(n_assets, means_rf, cov_rf, method = 'rand', dir_alpha = None, n_samples = 500)
+# dir_sigma, dir_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir_avg, n_samples = 500)
+# dir0_sigma, dir0_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir0_avg, n_samples = 500)
+# =============================================================================
 
-# Dirichlet distribution for the frontier close to the origin    
-dir_avg = np.ones(n_assets+1)
-dir_avg[0] = n_assets
-
-# Dirichlet distribution for the frontier in the upper-right part
-profit_idx = np.argmax(means_rf)
-dir0_avg = np.ones(n_assets+1)
-dir0_avg[profit_idx] = n_assets
-
-# Random weights to verify the efficient frontier
-#random_sigma, random_mu = random_weights(n_assets, means_rf, cov_rf, method = 'rand', dir_alpha = None, n_samples = 500)
-#dir_sigma, dir_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir_avg, n_samples = 500)
-#dir0_sigma, dir0_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir0_avg, n_samples = 500)
-
-# Plotting the efficient frontier
+#%% Plotting the efficient frontier
 plt.figure(figsize=(8, 6))
 #plt.plot(stds, mus, label='Efficient Frontier', marker='o', linestyle='-')
-plt.plot(tangent_std, tangent_ret, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
-plt.scatter(stds, mus, c=sh, cmap='viridis')
-plt.plot(std_range,cml, label = "CML", linestyle = "--")
+plt.scatter(stds, mus, c=sh, cmap='viridis', label = 'efficient frontier')
 plt.colorbar(label='Sharpe Ratio')
+plt.plot(stds_rf, mus_rf, label='CML', linestyle='--')
+plt.plot(tangent_std, tangent_ret, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
+plt.plot(tangent_std_rf, tangent_ret_rf, marker='o', color='g', markersize=5, label = "TP with a risk-free asset")
+#plt.plot(std_range,cml, label = "CML", linestyle = "--")
+
 
 #plt.scatter(random_sigma, random_mu, s=0.1, color='g', label = "Random weights")
 #plt.scatter(dir_sigma, dir_mu, s=0.1, color='g', label = "Dirichlet with weight 30 on risk-free")
 #plt.scatter(dir0_sigma, dir0_mu, s=0.1, color='g', label = "Dirichlet with weight 30 on highest return")
 #plt.scatter(stdse, muse, c=she)
 #plt.plot(stdsa, musa, label='Efficient Frontier with ' + str(low_ESG) + ' <= ESG <= ' + str(up_ESG), marker='o', linestyle='-')
-plt.title('Markowitz Efficient Frontier with a Risk-Free Asset')
+plt.title('Markowitz Efficient Frontier and Capital Market Line')
 plt.xlabel('Portfolio Risk')
 plt.ylabel('Portfolio Return')
 plt.grid(True)

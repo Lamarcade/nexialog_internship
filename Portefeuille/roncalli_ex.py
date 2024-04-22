@@ -32,7 +32,7 @@ mu_rf = rf_mean(mu, rf)
 
 
 #%%
-ef_points = ef2(mu, sigma, 0, 100, max_std = 0.3, short_sales = True)
+ef_points = efficient_frontier(mu, sigma, 0, 100, short_sales = True)
 stds, mus = [p[0] for p in ef_points], [p[1] for p in ef_points]
 sh = get_sharpe(mus, stds, rf)
 
@@ -52,12 +52,28 @@ sh_rf = get_sharpe(mus_rf, stds_rf, rf)
 
 #%%
 # Risk and return of the optimal portfolio
-tangent_std, tangent_ret = optim_sharpe(mu_rf, sigma_rf, rf)
+tangent_std, tangent_ret = optim_sharpe(mu, sigma, rf)
 
 std_range = np.arange(0.001, 0.20, 0.01)
 cml = capital_market_line(rf,tangent_ret, tangent_std, std_range)
 
 #%% Plotting the efficient frontier
+
+plt.figure(figsize=(8, 6))
+#plt.scatter(stds_rf, mus_rf, c=sh_rf, cmap='viridis')
+#plt.colorbar(label='Sharpe Ratio')
+plt.plot(stds, mus)
+
+plt.plot(std_range,cml, label = "CML", linestyle = "--")
+#plt.scatter(random_sigma, random_mu, s=0.1, color='g', label = "Random weights")
+plt.plot(tangent_std, tangent_ret, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
+plt.title('Markowitz Efficient Frontier without a Risk-Free Asset')
+plt.xlabel('Portfolio Risk')
+plt.ylabel('Portfolio Return')
+plt.grid(True)
+plt.legend()
+plt.show()
+
 plt.figure(figsize=(8, 6))
 #plt.scatter(stds_rf, mus_rf, c=sh_rf, cmap='viridis')
 #plt.colorbar(label='Sharpe Ratio')

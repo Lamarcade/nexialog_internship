@@ -21,17 +21,38 @@ plt.close('all')
 MS, SU, SP, RE = get_scores()
 MSH, SUH, SPH, REH = homogen_df(MS, SU, SP, RE)
 MSS, SUS, SPS, RES = reduced_df(MS, SU, SP, RE)
-scores = get_score_df()
-scores_valid, valid_indices = keep_valid()
-std_scores = standardise_df()
 
 # All the agencies
 dict_agencies = {'MS':  MSS['Score'], 'SU': SUS['Score'], 'SP': SPS['Score'],
     'RE': RES['Score']}
+scores = get_score_df(dict_agencies)
+scores_valid, valid_indices = keep_valid(scores)
+std_scores = standardise_df(scores)
+
 
 # %% Data visualisation
 
+
 # %% Scores distribution
+MSR, SUR, SPR, RER = reduced_mixed_df(MS, SU, SP, RE)
+
+base_dic = {'MS':  MSR['Score'], 'SU': SUR['Score'], 'SP': SPR['Score'],
+    'RE': RER['Score']}
+
+base_scores = get_score_df(base_dic)
+
+cmap = 'GnBu_d'
+sns.set_theme(style="darkgrid")
+fig, ax = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
+
+for (i, agency) in enumerate(base_scores.columns):
+    sns.histplot(data=base_scores, x=agency, hue=agency, palette=cmap,
+                 ax=ax[i], multiple='stack', legend=False)
+    ax[i].set_title(str(agency) + ' scores distribution')
+
+plt.savefig("Figures/base_distributions.png")
+
+# %% Scores distribution after conversions
 
 cmap = 'GnBu_d'
 sns.set_theme(style="darkgrid")
@@ -42,7 +63,7 @@ for (i, agency) in enumerate(scores.columns):
                  ax=ax[i], multiple='stack', legend=False)
     ax[i].set_title(str(agency) + ' scores distribution')
 
-#plt.savefig("Figures/distributions.png")
+plt.savefig("Figures/distributions.png")
 
 # %% Sectors analysis
 

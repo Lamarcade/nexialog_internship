@@ -6,7 +6,7 @@ Created on Tue Apr 23 14:33:32 2024
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 
 class Portfolio:
     def __init__(self,mu,sigma, rf, short_sales = True):
@@ -29,8 +29,17 @@ class Portfolio:
         self.sigma = sigma_rf
         self.rf_params = True
         
+        return self
+        
+    def change_short_sales(self):
+        self.short_sales = not(self.short_sales)
+        return self
+    
     def get_variance(self, weights):
         return weights.T.dot(self.sigma).dot(weights)
+    
+    def get_risk(self, weights):
+        return np.sqrt(weights.T.dot(self.sigma).dot(weights))
     
     def get_return(self, weights):
         return weights.T.dot(self.mu)
@@ -41,9 +50,7 @@ class Portfolio:
         
     def neg_sharpe(self, weights):
         return (- (self.get_return(weights) - self.rf)/ np.sqrt(self.get_variance(weights)))
-    
-    def neg_risk(self,weights):
-        return -np.sqrt(weights.T.dot(self.sigma).dot(weights))
+
     
     def neg_return(self,weights):
         return - weights.T.dot(self.mu)
@@ -52,15 +59,16 @@ class Portfolio:
         return({'type': 'eq', 'fun': lambda w: sum(w)-1})
     
     def risk_constraint(self, max_risk):
-        return({'type': 'ineq', 'fun': lambda w: max_risk - self.get_variance(w)})
+        return({'type': 'ineq', 'fun': lambda w: max_risk - self.get_risk(w)})
     
     def return_constraint(self, min_return):
         return({'type': 'ineq', 'fun': lambda w: self.get_return(w) - min_return})
+        #return(LinearConstraint(self.mu, lb = min_return, ub = np.inf))
     
     def bounds(self, input_bounds = None):
         if self.short_sales:
             bounds = [(-1.0, 1.0) for _ in range(self.n)]
-        elif bounds == None:
+        elif input_bounds == None:
             bounds = [(0.0, 1.0) for _ in range(self.n)]
         else:
             bounds = input_bounds
@@ -72,44 +80,45 @@ class Portfolio:
     def optimal_portfolio(self, method = 1, gamma = None, max_risk = None, min_return = None, input_bounds = None):
         initial_weights = self.init_weights()
         boundaries = self.bounds(input_bounds)
+        constraint = self.weight_constraint()
         
         if method == 3:
-            constraint = self.return_constraint(min_return)
-            result = minimize(self.neg_risk, x0 = initial_weights, 
+            # Minimum return constraint
+            constraint2 = self.return_constraint(min_return)
+            result = minimize(self.get_risk, x0 = initial_weights, 
                           method = 'SLSQP', 
-                          constraints = constraint, bounds = boundaries)            
+                          constraints = [constraint, constraint2], bounds = boundaries)            
             
         elif method == 2:
-            constraint = self.risk_constraint(max_risk)
+            # Maximum volatility constraint
+            constraint2 = self.risk_constraint(max_risk)
             result = minimize(self.neg_return, x0 = initial_weights, 
                           method = 'SLSQP', 
-                          constraints = constraint, bounds = boundaries)            
+                          constraints = [constraint, constraint2], bounds = boundaries)            
             
         else:
-            constraint = self.weight_constraint()
             result = minimize(self.neg_mean_variance, x0 = initial_weights, 
                           args = (gamma,), method = 'SLSQP', 
                           constraints = constraint, bounds = boundaries)
-        if result.success:
-            # Retrieve the optimal weights
-            return(result.x)
+        return(result.x)
+       
     
     def efficient_frontier(self, method = 1, n_points = 100, 
                            min_risk_tol = 0, max_risk_tol = 1,
-                           min_std = 0, max_std = 0.2,
-                           min_ret = 0, max_ret = 0.10
+                           min_std = 0.001, max_std = 0.2,
+                           min_ret = 0.003, max_ret = 0.08
                            ):
         risks, returns, sharpes = [],[], []
 
         if method == 3:
-            for c in np.linspace(min_std, max_std, n_points):
-                weights = self.optimal_portfolio(3, c, min_std, max_std)
+            for c in np.linspace(min_ret, max_ret, n_points):
+                weights = self.optimal_portfolio(3, min_return = c)
                 risks.append(np.sqrt(self.get_variance(weights)))
                 returns.append(self.get_return(weights))
                 sharpes.append(- self.neg_sharpe(weights))
         elif method == 2:
-            for c in np.linspace(min_ret, max_ret, n_points): 
-                weights = self.optimal_portfolio(2, c, min_ret, max_ret)
+            for c in np.linspace(min_std, max_std, n_points): 
+                weights = self.optimal_portfolio(2, max_risk= c)
                 risks.append(np.sqrt(self.get_variance(weights)))
                 returns.append(self.get_return(weights))
                 sharpes.append(- self.neg_sharpe(weights))            
@@ -157,7 +166,10 @@ class Portfolio:
         
     def plot_frontier(self, rf_included, risks, returns, sharpes = None, marker_size = 1):
         if rf_included:
-            self.ax.plot(risks, returns, linestyle = '--', label = 'CML')
+            if self.short_sales:
+                self.ax.plot(risks, returns, linestyle = '--', label = 'CML')
+            else:
+                self.ax.plot(risks, returns, linestyle = '--', color = "g", label = 'CML no-short')
         else:
             ef = self.ax.scatter(risks, returns, c=sharpes, cmap='viridis', s = marker_size, label = 'Efficient frontier')
             self.fig.colorbar(ef, ax = self.ax, label='Sharpe Ratio')

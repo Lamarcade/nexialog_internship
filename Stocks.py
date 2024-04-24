@@ -40,14 +40,17 @@ class Stocks:
         mr_tickers = self.returns.columns.tolist()
         tv_filtered = target_variable.loc[target_variable['Tag'].isin(mr_tickers)]
 
-        self.targetESG = tv_filtered
+        self.targetESG = np.array(tv_filtered['Score'].tolist())
         # Keep only the companies for with we have ESG Scores
         tv_tickers = tv_filtered['Tag'].tolist()
         self.returns = self.returns.loc[:, self.returns.columns.isin(tv_tickers)]
+        return(self.targetESG)
         
     def restrict_assets(self, n_assets):
         self.n_assets = n_assets
         self.returns = self.returns.iloc[:, :n_assets]
+        self.targetESG = self.targetESG[:n_assets]
+        return(self.targetESG)
         
     def compute_mean(self):
         self.mean = np.array(self.returns.mean(axis = 0))

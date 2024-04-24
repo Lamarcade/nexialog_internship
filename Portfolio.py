@@ -44,13 +44,15 @@ class Portfolio:
     def get_return(self, weights):
         return weights.T.dot(self.mu)
     
+    def get_sharpe(self, weights):
+        return ((self.get_return(weights) - self.rf)/ np.sqrt(self.get_variance(weights)))
+    
     def neg_mean_variance(self, weights, gamma):
         
         return 1/2 * self.get_variance(weights) - gamma * self.get_return(weights)
         
     def neg_sharpe(self, weights):
         return (- (self.get_return(weights) - self.rf)/ np.sqrt(self.get_variance(weights)))
-
     
     def neg_return(self,weights):
         return - weights.T.dot(self.mu)

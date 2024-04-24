@@ -79,29 +79,35 @@ class Portfolio:
     def init_weights(self):
         return(np.ones(self.n)/self.n)
     
-    def optimal_portfolio(self, method = 1, gamma = None, max_risk = None, min_return = None, input_bounds = None):
+    def optimal_portfolio(self, method = 1, gamma = None, max_risk = None, 
+                          min_return = None, input_bounds = None,
+                          new_constraints = None):
         initial_weights = self.init_weights()
         boundaries = self.bounds(input_bounds)
-        constraint = self.weight_constraint()
+        constraints = [self.weight_constraint()]
+        
+        if new_constraints != None:
+            for constraint in new_constraints:
+                constraints.append(constraint)
         
         if method == 3:
             # Minimum return constraint
-            constraint2 = self.return_constraint(min_return)
+            constraints.append(self.return_constraint(min_return))
             result = minimize(self.get_risk, x0 = initial_weights, 
                           method = 'SLSQP', 
-                          constraints = [constraint, constraint2], bounds = boundaries)            
+                          constraints = constraints, bounds = boundaries)            
             
         elif method == 2:
             # Maximum volatility constraint
-            constraint2 = self.risk_constraint(max_risk)
+            constraints.append(self.risk_constraint(max_risk))
             result = minimize(self.neg_return, x0 = initial_weights, 
                           method = 'SLSQP', 
-                          constraints = [constraint, constraint2], bounds = boundaries)            
+                          constraints = constraints, bounds = boundaries)            
             
         else:
             result = minimize(self.neg_mean_variance, x0 = initial_weights, 
                           args = (gamma,), method = 'SLSQP', 
-                          constraints = constraint, bounds = boundaries)
+                          constraints = constraints, bounds = boundaries)
         return(result.x)
        
     

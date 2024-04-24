@@ -17,6 +17,8 @@ class Stocks:
         
         # Is the risk-free asset included
         self.rf_params = False
+        
+        self.targetESG = None
 
     def process_data(self):
         # Convert 'Date' column to datetime
@@ -49,8 +51,10 @@ class Stocks:
     def restrict_assets(self, n_assets):
         self.n_assets = n_assets
         self.returns = self.returns.iloc[:, :n_assets]
-        self.targetESG = self.targetESG[:n_assets]
-        return(self.targetESG)
+        
+        if (self.targetESG != None):
+            self.targetESG = self.targetESG[:n_assets]
+            return(self.targetESG)
         
     def compute_mean(self):
         self.mean = np.array(self.returns.mean(axis = 0))

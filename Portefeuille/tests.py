@@ -26,6 +26,7 @@ for i in range(5):
 
 rf = 0.03 # Risk-free rate
 
+#%%
 pf = Portfolio(mu, sigma, rf)
 
 risks, returns, sharpes = pf.efficient_frontier()
@@ -38,21 +39,8 @@ pf.risk_free_stats()
 
 risks_rf, returns_rf, _ = pf.efficient_frontier(max_risk_tol = 0.5)
 
-tangent_weights_rf = pf.tangent_portfolio()
-tangent_risk_rf, tangent_return_rf = np.sqrt(pf.get_variance(tangent_weights_rf)), pf.get_return(tangent_weights_rf)
-
-
 #%% Plotting the efficient frontier
-
-plt.figure(figsize=(8, 6))
-plt.scatter(risks, returns, c=sharpes, cmap='viridis', s = 1)
-plt.colorbar(label='Sharpe Ratio')
-plt.plot(risks_rf, returns_rf, linestyle = '--')
-plt.plot(tangent_risk, tangent_return, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
-
-plt.title('Markowitz Efficient Frontier with and without a risk-free asset')
-plt.xlabel('Portfolio Risk')
-plt.ylabel('Portfolio Return')
-plt.grid(True)
-plt.legend()
-plt.show()
+pf.new_figure()
+pf.plot_frontier(False, risks, returns, sharpes = sharpes)
+pf.plot_frontier(True, risks_rf, returns_rf)
+pf.plot_tangent(tangent_risk, tangent_return)

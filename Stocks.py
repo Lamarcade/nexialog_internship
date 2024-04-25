@@ -36,13 +36,16 @@ class Stocks:
         # Drop columns that have less than n_valid valid values
         self.returns = monthly_returns.dropna(axis=1, thresh=n_valid)
      
-    def keep_common_tickers(self, target_variable):
+    def keep_common_tickers(self, target_variable, sectors = None):
 
         #Keep only the companies for which we have monthly returns
         mr_tickers = self.returns.columns.tolist()
         tv_filtered = target_variable.loc[target_variable['Tag'].isin(mr_tickers)]
 
         self.targetESG = np.array(tv_filtered['Score'].tolist())
+        if sectors is not None:
+            self.sectors = sectors.loc[sectors['Tag'].isin(mr_tickers)]
+        
         # Keep only the companies for with we have ESG Scores
         tv_tickers = tv_filtered['Tag'].tolist()
         self.returns = self.returns.loc[:, self.returns.columns.isin(tv_tickers)]
@@ -54,6 +57,8 @@ class Stocks:
         
         if (self.targetESG is not None):
             self.targetESG = self.targetESG[:n_assets]
+            if self.sectors is not None:
+                self.sectors = self.sectors.iloc[:n_assets]
             return(self.targetESG)
         
     def compute_mean(self):

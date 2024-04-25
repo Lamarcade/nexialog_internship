@@ -22,23 +22,32 @@ annual_rf = 0.05 # Risk-free rate
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
 SG.reduced_mixed_df()
-score_ranks = SG.get_rank_df()
+scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
 
+SG.valid_ticker_sector()
+
+sectors_list = SG.valid_sector_df
+
 #%% Create a target variable
-SM = ScoreMaker(score_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+
+# Cluster technique
+SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
 
 SMK = SM.kmeans()
 
 ESGTV = SM.make_score(SMK)
 
+# Worst score approach
+#ESGTV2 = SG.worst_score(scores_ranks, n_classes = 7)
+
 #%% Get the stock data and keep the companies in common with the target variable
 st = Stocks(path, annual_rf)
 st.process_data()
 st.compute_monthly_returns()
-_ = st.keep_common_tickers(ESGTV)
-stocks_ESG = st.restrict_assets(20)
+_ = st.keep_common_tickers(ESGTV, sectors_list)
+stocks_ESG = st.restrict_assets(50)
 st.compute_mean()
 st.compute_covariance()
 mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
@@ -47,29 +56,24 @@ mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
 #%% Build a portfolio with restrictions on the minimal ESG score
 
 epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales= False)
-epf = epf.risk_free_stats()
+tangent_weights = epf.tangent_portfolio()
+tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+
+#epf = epf.risk_free_stats()
 
 sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
-plt.figure(figsize=(8, 6))
-plt.plot(ESG_list, sharpes, label='Efficient Frontier', marker='o', linestyle='-')
-plt.title('ESG Constraints impact on Sharpe Ratio')
-plt.xlabel('ESG score')
-plt.ylabel('Sharpe ratio')
-plt.grid(True)
-plt.legend()
-plt.show()
+epf.plot_ESG_frontier(sharpes, ESG_list)
 
-#%% 
-risks, returns, sharpes = epf.efficient_frontier(method = 2)
-risks_5, returns_5, sharpes_5 = epf.efficient_frontier(method = 2, new_constraints = [epf.ESG_constraint(5)])
+#%% Efficient frontier depending on the ESG constraint
 
-plt.figure(figsize=(8, 6))
-plt.plot(risks, returns)
-plt.plot(risks_5, returns_5, label = 'Min ESG of 5')
-plt.title('ESG Constraints impact on Efficient frontier')
-plt.xlabel('Risk')
-plt.ylabel('Return')
-plt.grid(True)
-plt.legend()
-plt.show()
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.05, method = 2)
+risks_5, returns_5, sharpes_5 = epf.efficient_frontier(max_std = 0.05, method = 2, new_constraints = [epf.ESG_constraint(5)])
+
+#%% Plot them
+
+epf.new_figure()
+epf.plot_tangent(tangent_risk, tangent_return)
+epf.plot_constrained_frontier(risks, returns)
+epf.plot_constrained_frontier(risks_5, returns_5, ESG_min_level = 5)
+

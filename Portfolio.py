@@ -182,13 +182,19 @@ class Portfolio:
             ef = self.ax.scatter(risks, returns, c=sharpes, cmap='viridis', s = marker_size, label = 'Efficient frontier')
             self.fig.colorbar(ef, ax = self.ax, label='Sharpe Ratio')
         
+        n_risky = len(self.mu)
+        if rf_included:
+            n_risky -= 1
+        
         if not(self.existing_plot):
-            self.ax.set_title('Markowitz Efficient Portfolios')
+            self.ax.set_title('Markowitz Efficient Portfolios with ' + str(n_risky) + ' risky assets')
             self.ax.set_xlabel('Portfolio Risk')
             self.ax.set_ylabel('Portfolio Return')
             self.ax.grid(True)
             self.existing_plot = True
         self.ax.legend()
+        
+        plt.savefig('Figures/Efficient_frontiers.png')
         
     def plot_tangent(self, tangent_risk, tangent_return):
         self.ax.plot(tangent_risk, tangent_return, marker='o', color='r', markersize=5, label = "Tangent Portfolio")

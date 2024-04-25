@@ -17,7 +17,7 @@ from sklearn.mixture import GaussianMixture
 
 class ScoreMaker:
     def __init__(self, ranks, dict_agencies, valid_tickers, valid_indices, n_classes):
-        self.ranks = ranks
+        self.ranks = ranks.copy()
         self.dict_agencies = dict_agencies
         self.valid_tickers = valid_tickers
         self.valid_indices = valid_indices
@@ -84,7 +84,8 @@ class ScoreMaker:
         sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
         
         # Create a mapping dictionary from original labels to sorted labels
-        label_mapping = {label: rank for rank, label in enumerate(sorted_labels, start=1)}
+        # A low value means a poor ESG score
+        label_mapping = {label: 7-rank for rank, label in enumerate(sorted_labels, start=1)}
 
         # Map the labels in the original DataFrame according to the sorted order
         full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
@@ -93,3 +94,4 @@ class ScoreMaker:
 
         ESGTV.dropna(inplace = True)
         return ESGTV
+    

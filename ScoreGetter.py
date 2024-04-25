@@ -122,6 +122,9 @@ class ScoreGetter:
         self.valid_tickers = self.tickerlist[self.valid_indices]
         return (scores_valid)
     
+    def set_valid_df(self):
+        self.score_df = self.keep_valid()
+    
     def standardise_df(self):
         score_df = self.get_score_df()
         scaler = StandardScaler()
@@ -132,3 +135,35 @@ class ScoreGetter:
         scores_ranks = scores_valid.copy()
         scores_ranks = scores_ranks.rank(method = method)
         return(scores_ranks)
+    
+    def ticker_sector(self):
+        RE_sector = self.RE.copy().rename(columns = {'Constituent RIC':'Tag','Industry':'Sector'})   
+        self.sector_df = RE_sector[['Tag', 'Sector']]
+        
+    def valid_ticker_sector(self):
+        self.ticker_sector()
+        self.valid_sector_df = self.sector_df.copy().loc[self.valid_indices]
+    
+    def worst_score(self, scores_ranks, n_classes):
+        ranks = scores_ranks.copy()
+        
+        # Transforms the ranks into 0 to n_classes-1 scores
+        list_scores = list(range(n_classes))
+        thresholds = [i* 333/n_classes for i in range(n_classes)]
+        def mapping(score):
+            for i in range(len(thresholds)):
+                if score <= thresholds[i]:
+                    return(list_scores[i]-1)
+            return n_classes-1
+        
+        # A higher rank indicates a low score
+        reverse_rank = lambda x: 334-x
+        
+        
+        for agency in ranks.columns:
+            ranks[agency] = ranks[agency].map(reverse_rank)
+            ranks[agency] = ranks[agency].map(mapping)
+        
+        # Worst score across columns
+        min_scores = ranks.min(axis = 1)
+        return(pd.DataFrame({'Tag':self.valid_tickers,'Score':min_scores}))

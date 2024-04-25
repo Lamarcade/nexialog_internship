@@ -52,7 +52,7 @@ class Stocks:
         self.n_assets = n_assets
         self.returns = self.returns.iloc[:, :n_assets]
         
-        if (self.targetESG != None):
+        if (self.targetESG is not None):
             self.targetESG = self.targetESG[:n_assets]
             return(self.targetESG)
         

@@ -46,7 +46,8 @@ mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
-epf = ESG_Portfolio(mean,cov,rf, stocks_ESG)
+epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales= False)
+epf = epf.risk_free_stats()
 
 sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
@@ -55,6 +56,20 @@ plt.plot(ESG_list, sharpes, label='Efficient Frontier', marker='o', linestyle='-
 plt.title('ESG Constraints impact on Sharpe Ratio')
 plt.xlabel('ESG score')
 plt.ylabel('Sharpe ratio')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+#%% 
+risks, returns, sharpes = epf.efficient_frontier(method = 2)
+risks_5, returns_5, sharpes_5 = epf.efficient_frontier(method = 2, new_constraints = [epf.ESG_constraint(5)])
+
+plt.figure(figsize=(8, 6))
+plt.plot(risks, returns)
+plt.plot(risks_5, returns_5, label = 'Min ESG of 5')
+plt.title('ESG Constraints impact on Efficient frontier')
+plt.xlabel('Risk')
+plt.ylabel('Return')
 plt.grid(True)
 plt.legend()
 plt.show()

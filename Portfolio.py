@@ -70,7 +70,7 @@ class Portfolio:
     def bounds(self, input_bounds = None):
         if self.short_sales:
             bounds = [(-1.0, 1.0) for _ in range(self.n)]
-        elif input_bounds == None:
+        elif input_bounds is None:
             bounds = [(0.0, 1.0) for _ in range(self.n)]
         else:
             bounds = input_bounds
@@ -86,9 +86,8 @@ class Portfolio:
         boundaries = self.bounds(input_bounds)
         constraints = [self.weight_constraint()]
         
-        if new_constraints != None:
-            for constraint in new_constraints:
-                constraints.append(constraint)
+        if new_constraints is not None:
+            constraints.extend(new_constraints)
         
         if method == 3:
             # Minimum return constraint
@@ -114,25 +113,26 @@ class Portfolio:
     def efficient_frontier(self, method = 1, n_points = 100, 
                            min_risk_tol = 0, max_risk_tol = 1,
                            min_std = 0.001, max_std = 0.2,
-                           min_ret = 0.003, max_ret = 0.08
+                           min_ret = 0.003, max_ret = 0.08,
+                           new_constraints = None
                            ):
         risks, returns, sharpes = [],[], []
 
         if method == 3:
             for c in np.linspace(min_ret, max_ret, n_points):
-                weights = self.optimal_portfolio(3, min_return = c)
+                weights = self.optimal_portfolio(3, min_return = c, new_constraints= new_constraints)
                 risks.append(np.sqrt(self.get_variance(weights)))
                 returns.append(self.get_return(weights))
                 sharpes.append(- self.neg_sharpe(weights))
         elif method == 2:
             for c in np.linspace(min_std, max_std, n_points): 
-                weights = self.optimal_portfolio(2, max_risk= c)
+                weights = self.optimal_portfolio(2, max_risk= c, new_constraints= new_constraints)
                 risks.append(np.sqrt(self.get_variance(weights)))
                 returns.append(self.get_return(weights))
                 sharpes.append(- self.neg_sharpe(weights))            
         else: 
             for gamma in np.linspace(min_risk_tol, max_risk_tol, n_points):
-                weights = self.optimal_portfolio(1, gamma)
+                weights = self.optimal_portfolio(1, gamma = gamma, new_constraints= new_constraints)
                 risks.append(np.sqrt(self.get_variance(weights)))
                 returns.append(self.get_return(weights))
                 sharpes.append(- self.neg_sharpe(weights))

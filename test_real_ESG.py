@@ -18,7 +18,6 @@ from ScoreMaker import ScoreMaker
 path = "Portefeuille/sp500_stocks_short.csv"
 annual_rf = 0.05 # Risk-free rate
 
-
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
 SG.reduced_mixed_df()
@@ -47,19 +46,20 @@ st = Stocks(path, annual_rf)
 st.process_data()
 st.compute_monthly_returns()
 _ = st.keep_common_tickers(ESGTV, sectors_list)
-stocks_ESG = st.restrict_assets(50)
+stocks_ESG = st.restrict_assets(100)
 st.compute_mean()
 st.compute_covariance()
 mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
 
+st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
-epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales= False)
+epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False)
 tangent_weights = epf.tangent_portfolio()
 tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
 
-#epf = epf.risk_free_stats()
+epf = epf.risk_free_stats()
 
 sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
@@ -76,4 +76,7 @@ epf.new_figure()
 epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
 epf.plot_constrained_frontier(risks_5, returns_5, ESG_min_level = 5)
+
+#%% Efficient frontiers with additional constraints
+
 

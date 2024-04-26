@@ -6,7 +6,8 @@ Created on Tue Apr 23 17:51:09 2024
 """
 import pandas as pd
 import numpy as np
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Stocks:
     def __init__(self,path, annual_rf):
@@ -83,5 +84,32 @@ class Stocks:
         covariance_rf[1:,1:] = self.covariance
         self.covariance = covariance_rf
         self.rf_params = True
+        
+    def sector_analysis(self, make_acronym=False, sector_map=None):
+        sectors_df = self.sectors.copy()
+        sectors_count = sectors_df['Sector'].value_counts()
+
+        # Create a CategoricalDtype with the correct order
+        sorted_sectors = pd.CategoricalDtype(
+            categories=sectors_count.index, ordered=True)
+
+        # Create a DataFrame to keep track of the sector count
+        sorted_df = sectors_df.sort_values(by='Sector')
+        sorted_df['Sector'] = sorted_df['Sector'].astype(sorted_sectors)
+
+        # Sort the DataFrame based on sector count and score
+        sorted_df = sorted_df.sort_values(
+            by=['Sector'], ascending=True)
+
+        # Retrieve 3-letter sector acronym
+        if make_acronym:
+            sorted_df['Acronym'] = sorted_df['Sector'].str.extract(r'([A-Z]{3})')
+
+        return sorted_df
     
-    
+    def plot_sectors(self):
+        plt.figure()
+        ordered_sectors = self.sector_analysis(True)
+        sns.histplot(data=ordered_sectors, y='Acronym', hue='Acronym', legend=False)
+        plt.title("Number of companies in each sector for Refinitiv data")
+        plt.savefig('Figures/RE_sectors.png', bbox_inches = 'tight')

@@ -159,7 +159,6 @@ class ScoreGetter:
         # A higher rank indicates a low score
         reverse_rank = lambda x: 334-x
         
-        
         for agency in ranks.columns:
             ranks[agency] = ranks[agency].map(reverse_rank)
             ranks[agency] = ranks[agency].map(mapping)

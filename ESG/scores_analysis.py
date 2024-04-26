@@ -144,7 +144,6 @@ sns.boxplot(data=RE_sectors, y="Sector_B", x='Score',
 plt.title("Scores in each sector for Refinitiv data")
 plt.savefig("Figures/RE_sectors_scores.png", bbox_inches="tight")
 
-
 #%% Gini sector means
 
 RE_means = RE_sectors[['Sector_B','Score']].groupby(['Sector_B']).mean()

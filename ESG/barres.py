@@ -154,7 +154,7 @@ def evolve(popu, cache, MSv, SPv, REv, low = 2, up = 100, mutate_chance = 0.1, b
     while children_count < wanted_children:
         couple = rd.sample(next_gen, 2)
         child = np.concatenate((couple[0][:given_len],couple[1][given_len:]))
-        if np.sort(child) == child:
+        if (np.sort(child) == child).all():
             children.append(child)
             children_count +=1
     next_gen.extend(children)
@@ -170,7 +170,7 @@ def evolve(popu, cache, MSv, SPv, REv, low = 2, up = 100, mutate_chance = 0.1, b
 def genetics(count, length, max_gen, accuracy, MSv, SPv, REv, low = 2, up = 100, mutate_chance = 0.1, best_kept_prop = 0.5, rd_kept_chance = 0.1):
     popu = population(count, length, low, up)
     gen_count = 0
-    avg_fit = accuracy + 1 
+    avg_fit = accuracy - 1
 
     known_fit = {}
 

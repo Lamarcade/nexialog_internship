@@ -65,7 +65,7 @@ class ScoreMaker:
             tau = 0
             for agency in self.dict_agencies:
                 #tau += kendalltau(self.dict_agencies[agency][self.valid_tickers], mix_labels, variant = 'c').statistic / len(dict_agencies)
-                tau += -kendalltau(self.ranks, mix_labels, variant = 'c').statistic
+                tau += -kendalltau(self.ranks[agency], mix_labels, variant = 'c').statistic
 
             if tau >= taumax:
                 taumax = tau
@@ -77,10 +77,11 @@ class ScoreMaker:
         return full_scores, taumax
     
     def make_score(self, full_scores):
+        
         mean_ranks = full_scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
         global_mean_ranks = global_mean_ranks.sort_values()
-
+        
         sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
         
         # Create a mapping dictionary from original labels to sorted labels
@@ -89,9 +90,36 @@ class ScoreMaker:
 
         # Map the labels in the original DataFrame according to the sorted order
         full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
+        
+        rank_stats = pd.DataFrame({'labels': global_mean_ranks.index, 'mean': global_mean_ranks.values})
+        rank_stats['labels'].map(label_mapping)
+        rank_stats['std'] = full_scores.groupby('sorted_labels').std().mean(axis=1)
+
+        self.full_ranks = full_scores
+        self.rank_stats = rank_stats
 
         ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score':full_scores['sorted_labels']})
 
         ESGTV.dropna(inplace = True)
         return ESGTV
+    
+    def get_mean_ranks(self, labels_column = 'sorted_labels'):
+        agencies = self.full_ranks.columns[:4]
+        rank_df = pd.DataFrame(columns = agencies)
+        dfc = self.full_ranks.copy()
+        for agency in agencies:
+            mr = dfc[[agency, labels_column]].groupby(labels_column).mean().to_dict()
+            rank_df[agency] = mr[agency]
+            rank_df['cluster_mean_rank'] = rank_df.mean(axis=1)
+        return rank_df
+
+    def get_std_ranks(self, labels_column = 'sorted_labels'):
+        agencies = self.full_ranks.columns[:4]
+        rank_df = pd.DataFrame(columns = agencies)
+        dfc = self.full_ranks.copy()
+        for agency in agencies:
+            mr = dfc[[agency, labels_column]].groupby(labels_column).std().to_dict()
+            rank_df[agency] = mr
+            rank_df['cluster_std_rank'] = rank_df.mean(axis=1)
+        return rank_df
     

@@ -7,14 +7,16 @@ Created on Tue Apr 23 14:33:32 2024
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
+import math
 
 class Portfolio:
-    def __init__(self,mu,sigma, rf, short_sales = True):
+    def __init__(self,mu,sigma, rf, short_sales = True, sectors = None):
         self.mu = mu
         self.sigma = sigma
         self.rf = rf
         self.n = len(mu)
         self.short_sales = short_sales
+        self.sectors = sectors
         
         # Is the risk-free included in the mean and covariance
         self.rf_params = False
@@ -45,14 +47,14 @@ class Portfolio:
         return weights.T.dot(self.mu)
     
     def get_sharpe(self, weights):
-        return ((self.get_return(weights) - self.rf)/ np.sqrt(self.get_variance(weights)))
+        return ((self.get_return(weights) - self.rf)/ self.get_risk(weights))
     
     def neg_mean_variance(self, weights, gamma):
-        
+        # Negative mean-variance objective
         return 1/2 * self.get_variance(weights) - gamma * self.get_return(weights)
         
     def neg_sharpe(self, weights):
-        return (- (self.get_return(weights) - self.rf)/ np.sqrt(self.get_variance(weights)))
+        return (- (self.get_return(weights) - self.rf)/ self.get_risk(weights))
     
     def neg_return(self,weights):
         return - weights.T.dot(self.mu)
@@ -69,7 +71,7 @@ class Portfolio:
     
     def bounds(self, input_bounds = None):
         if self.short_sales:
-            bounds = [(-1.0, 1.0) for _ in range(self.n)]
+            bounds = None
         elif input_bounds is None:
             bounds = [(0.0, 1.0) for _ in range(self.n)]
         else:
@@ -104,6 +106,7 @@ class Portfolio:
                           constraints = constraints, bounds = boundaries)            
             
         else:
+            # Mean variance tradeoff
             result = minimize(self.neg_mean_variance, x0 = initial_weights, 
                           args = (gamma,), method = 'SLSQP', 
                           constraints = constraints, bounds = boundaries)
@@ -120,22 +123,28 @@ class Portfolio:
 
         if method == 3:
             for c in np.linspace(min_ret, max_ret, n_points):
-                weights = self.optimal_portfolio(3, min_return = c, new_constraints= new_constraints)
-                risks.append(np.sqrt(self.get_variance(weights)))
-                returns.append(self.get_return(weights))
-                sharpes.append(- self.neg_sharpe(weights))
+                weights = self.optimal_portfolio(3, min_return = c, new_constraints = new_constraints)
+                risk = self.get_risk(weights)
+                if not(math.isnan(risk)):
+                    risks.append(risk)
+                    returns.append(self.get_return(weights))
+                    sharpes.append(- self.neg_sharpe(weights))
         elif method == 2:
             for c in np.linspace(min_std, max_std, n_points): 
-                weights = self.optimal_portfolio(2, max_risk= c, new_constraints= new_constraints)
-                risks.append(np.sqrt(self.get_variance(weights)))
-                returns.append(self.get_return(weights))
-                sharpes.append(- self.neg_sharpe(weights))            
+                weights = self.optimal_portfolio(2, max_risk= c, new_constraints = new_constraints)
+                risk = self.get_risk(weights)
+                if not(math.isnan(risk)):
+                    risks.append(risk)
+                    returns.append(self.get_return(weights))
+                    sharpes.append(- self.neg_sharpe(weights))            
         else: 
             for gamma in np.linspace(min_risk_tol, max_risk_tol, n_points):
-                weights = self.optimal_portfolio(1, gamma = gamma, new_constraints= new_constraints)
-                risks.append(np.sqrt(self.get_variance(weights)))
-                returns.append(self.get_return(weights))
-                sharpes.append(- self.neg_sharpe(weights))
+                weights = self.optimal_portfolio(1, gamma = gamma, new_constraints = new_constraints)
+                risk = self.get_risk(weights)
+                if not(math.isnan(risk)):
+                    risks.append(risk)
+                    returns.append(self.get_return(weights))
+                    sharpes.append(- self.neg_sharpe(weights))
         return risks, returns, sharpes
     
     def tangent_portfolio(self):

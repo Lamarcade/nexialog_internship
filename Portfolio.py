@@ -35,7 +35,7 @@ class Portfolio:
         
     def change_short_sales(self):
         self.short_sales = not(self.short_sales)
-        return self
+        return self 
     
     def get_variance(self, weights):
         return weights.T.dot(self.sigma).dot(weights)
@@ -133,6 +133,7 @@ class Portfolio:
             for c in np.linspace(min_std, max_std, n_points): 
                 weights = self.optimal_portfolio(2, max_risk= c, new_constraints = new_constraints)
                 risk = self.get_risk(weights)
+
                 if not(math.isnan(risk)):
                     risks.append(risk)
                     returns.append(self.get_return(weights))

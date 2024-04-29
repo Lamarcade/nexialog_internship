@@ -37,19 +37,30 @@ SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
 SMK = SM.kmeans()
 SMG, taumax = SM.classify_gaussian_mixture()
 
+# ESG Target variables
 ESGTV = SM.make_score(SMK)
 ESGTV2 = SM.make_score(SMG)
 
 # Worst score approach
 #ESGTV3 = SG.worst_score(scores_ranks, n_classes = 7)
 
+# Agencies scores
+SG_agencies = ScoreGetter('ESG/Scores/')
+SG_agencies.reduced_df()
+_ = SG_agencies.get_score_df()
+scores_valid = SG_agencies.keep_valid()
+
+agencies_df = []
+for agency in scores_valid.columns:
+    agencies_df.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_valid[agency]}))
+    
 
 #%% Get the stock data and keep the companies in common with the target variable
 st = Stocks(path, annual_rf)
 st.process_data()
 st.compute_monthly_returns()
-_ = st.keep_common_tickers(ESGTV2, sectors_list)
-stocks_ESG = st.restrict_assets(5)
+_ = st.keep_common_tickers(agencies_df[3], sectors_list)
+stocks_ESG = st.restrict_assets(10)
 st.compute_mean()
 st.compute_covariance()
 mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
@@ -62,7 +73,7 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = True)
 tangent_weights = epf.tangent_portfolio()
 tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
 
-epf = epf.risk_free_stats()
+#epf = epf.risk_free_stats()
 
 sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
@@ -75,7 +86,7 @@ epf.new_figure()
 epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
 
-for min_ESG in range(4,8):
+for min_ESG in range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, 5):
     risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
     epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG)
 #%% Plot them

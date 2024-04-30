@@ -85,6 +85,17 @@ class Stocks:
         self.covariance = covariance_rf
         self.rf_params = True
         
+    def covariance_approximation(self):
+        
+        # Get the SPD covariance that minimizes the distance with the actual covariance
+        eigenvals, eigenvecs = np.linalg.eigh(self.covariance)
+        positive_eigenvals = np.fmax(eigenvals, np.zeros(len(eigenvals)))
+        #print(positive_eigenvals)
+        #print(eigenvecs.shape)
+        #print(positive_eigenvals.shape)
+        cov_approx = eigenvecs.dot(np.diag(positive_eigenvals)).dot(eigenvecs.T)
+        return(cov_approx)
+        
     def sector_analysis(self, make_acronym=False, sector_map=None):
         sectors_df = self.sectors.copy()
         sectors_count = sectors_df['Sector'].value_counts()
@@ -108,8 +119,9 @@ class Stocks:
         return sorted_df
     
     def plot_sectors(self):
-        plt.figure()
+        plt.figure(figsize = (8,12))
         ordered_sectors = self.sector_analysis(True)
         sns.histplot(data=ordered_sectors, y='Acronym', hue='Acronym', legend=False)
-        plt.title("Number of companies in each sector for Refinitiv data")
-        plt.savefig('Figures/RE_sectors.png', bbox_inches = 'tight')
+        plt.title('Number of companies in each sector according to S&P,' + str(self.n_assets) + ' assets')
+        figtitle = 'Figures/Sectors_' + str(self.n_assets) + '.png'
+        plt.savefig(figtitle, bbox_inches = 'tight')

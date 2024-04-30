@@ -59,11 +59,16 @@ for agency in scores_valid.columns:
 st = Stocks(path, annual_rf)
 st.process_data()
 st.compute_monthly_returns()
-_ = st.keep_common_tickers(agencies_df[3], sectors_list)
-stocks_ESG = st.restrict_assets(10)
+
+# 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
+provider = 'Sustainalytics'
+
+_ = st.keep_common_tickers(agencies_df[1], sectors_list)
+stocks_ESG = st.restrict_assets(50)
 st.compute_mean()
 st.compute_covariance()
-mean, cov, rf = st.get_mean(), st.get_covariance(), st.get_rf()
+mean, _, rf = st.get_mean(), st.get_covariance(), st.get_rf()
+cov = st.covariance_approximation()
 
 st.plot_sectors()
 
@@ -71,24 +76,33 @@ st.plot_sectors()
 
 epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = True)
 tangent_weights = epf.tangent_portfolio()
-tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+#tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
 
-#epf = epf.risk_free_stats()
+epf = epf.risk_free_stats()
 
 sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
-epf.plot_ESG_frontier(sharpes, ESG_list)
+epf.plot_ESG_frontier(sharpes, ESG_list, savefig = True, score_source = provider)
 
 #%% Efficient frontier depending on the ESG constraint
 
 risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
 epf.new_figure()
-epf.plot_tangent(tangent_risk, tangent_return)
+#epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
 
+save = False
+count, num_iters = 1, (int(max(stocks_ESG)) - int(min(stocks_ESG))) // 5
+
+
 for min_ESG in range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, 5):
+    if not(count % 2):
+        print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
     risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
-    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG)
+    if int(max(stocks_ESG)) - min_ESG < 5:
+        save = True
+    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider)
+    count += 1
 #%% Plot them
 
 

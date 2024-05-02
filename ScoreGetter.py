@@ -143,6 +143,9 @@ class ScoreGetter:
     def valid_ticker_sector(self):
         self.ticker_sector()
         self.valid_sector_df = self.sector_df.copy().loc[self.valid_indices]
+        
+    def get_valid_sector_df(self):
+        return self.valid_sector_df
     
     def worst_score(self, scores_ranks, n_classes):
         ranks = scores_ranks.copy()

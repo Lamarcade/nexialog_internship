@@ -6,8 +6,11 @@ Created on Tue Apr 23 14:33:32 2024
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
 from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 import math
+import seaborn as sns
+import pandas as pd
 
 class Portfolio:
     def __init__(self,mu,sigma, rf, short_sales = True, sectors = None):
@@ -48,6 +51,26 @@ class Portfolio:
     
     def get_sharpe(self, weights):
         return ((self.get_return(weights) - self.rf)/ self.get_risk(weights))
+    
+    def set_sectors_composition(self,weights):
+        
+        if self.sectors is None:
+            raise AttributeError('No sectors defined') 
+            
+        sectors_df = self.sectors.copy()
+        
+        dummy_weights = np.pad(weights, (0,len(sectors_df)-len(weights)))
+        sectors_df['Weight'] = dummy_weights
+        
+        sector_weights = sectors_df.groupby('Sector')['Weight'].sum()
+        
+        # Total_weight should ideally be 1 with the optimization constraints
+        total_weight = sector_weights.sum()
+        sector_proportions = sector_weights / total_weight
+        composition = pd.DataFrame({'Sector': sector_proportions.index, 'Weight': sector_proportions.values})
+        composition['Acronym'] = composition['Sector'].str.extract(r'([A-Z]{3})')
+        # Create dictionary with sector proportions
+        self.sectors_composition = composition
     
     def neg_mean_variance(self, weights, gamma):
         # Negative mean-variance objective
@@ -178,9 +201,22 @@ class Portfolio:
         random_mu = [self.get_return(weight) for weight in weights]
         return random_sigma, random_mu
     
-    def new_figure(self):
-        self.fig, self.ax = plt.subplots(figsize=(8, 6))
+    def new_figure(self, fig_size = (8,6)):
+        self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.existing_plot = False
+        
+    def make_title_save(self, figtitle, n_risky, savefig = False, score_source = None):
+        if score_source is not None:
+            title = score_source + figtitle + str(n_risky)
+        else:
+            title = figtitle + str(n_risky)
+        if self.rf_params:
+            title += '_risk_free'
+        if not(self.short_sales):
+            title += '_no_short'
+    
+        if savefig:
+            plt.savefig('Figures/' + title + '.png')    
         
     def plot_frontier(self, rf_included, risks, returns, sharpes = None, marker_size = 1):
         if rf_included:
@@ -212,5 +248,4 @@ class Portfolio:
         
         self.ax.legend()
         
-    
     

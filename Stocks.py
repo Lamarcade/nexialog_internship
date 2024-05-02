@@ -120,7 +120,7 @@ class Stocks:
     
     def plot_sectors(self):
         plt.figure(figsize = (8,12))
-        ordered_sectors = self.sector_analysis(True)
+        ordered_sectors = self.sector_analysis(make_acronym = True)
         sns.histplot(data=ordered_sectors, y='Acronym', hue='Acronym', legend=False)
         plt.title('Number of companies in each sector according to S&P,' + str(self.n_assets) + ' assets')
         figtitle = 'Figures/Sectors_' + str(self.n_assets) + '.png'

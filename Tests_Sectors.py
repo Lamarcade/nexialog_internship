@@ -63,7 +63,7 @@ st.compute_monthly_returns()
 provider = 'Refinitiv'
 
 _ = st.keep_common_tickers(agencies_df[1], sectors_list)
-n_assets = 10
+n_assets = 50
 stocks_ESG = st.restrict_assets(n_assets)
 st.compute_mean()
 st.compute_covariance()
@@ -74,7 +74,7 @@ st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
-epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list)
+epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list[:n_assets])
 
 #epf = epf.risk_free_stats()
 
@@ -86,6 +86,7 @@ epf.new_figure()
 epf.plot_constrained_frontier(risks, returns)
 
 save = False
+
 weight_10_range = [0.01, 0.02, 0.05, 0.09]
 weight_50_range = [0.001, 0.005, 0.01, 0.015]
 

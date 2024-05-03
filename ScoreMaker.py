@@ -76,7 +76,7 @@ class ScoreMaker:
         full_scores = self.add_class(mixture_labels)
         return full_scores, taumax
     
-    def make_score(self, full_scores):
+    def make_score(self, full_scores, n_classes = 7):
         
         mean_ranks = full_scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
@@ -86,7 +86,7 @@ class ScoreMaker:
         
         # Create a mapping dictionary from original labels to sorted labels
         # A low value means a poor ESG score
-        label_mapping = {label: 7-rank for rank, label in enumerate(sorted_labels, start=1)}
+        label_mapping = {label: n_classes-rank for rank, label in enumerate(sorted_labels, start=1)}
 
         # Map the labels in the original DataFrame according to the sorted order
         full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)

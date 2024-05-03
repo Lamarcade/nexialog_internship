@@ -27,14 +27,19 @@ class Portfolio:
         self.existing_plot = False
         
     def risk_free_stats(self):
-        self.mu = np.insert(self.mu,0,self.rf)
-        self.n = self.n+1
-        sigma_rf = np.zeros((self.n, self.n))
-        sigma_rf[1:,1:] = self.sigma
-        self.sigma = sigma_rf
-        self.rf_params = True
+        if not(self.rf_params):
+            self.mu = np.insert(self.mu,0,self.rf)
+            self.n = self.n+1
+            sigma_rf = np.zeros((self.n, self.n))
+            sigma_rf[1:,1:] = self.sigma
+            self.sigma = sigma_rf
+            self.rf_params = True
+            
+            if self.sectors is not None:
+                self.sectors.loc[-1] = ['RFA', 'Risk-Free Asset']
+                self.sectors.sort_index(inplace = True)
         
-        return self
+            return self
         
     def change_short_sales(self):
         self.short_sales = not(self.short_sales)

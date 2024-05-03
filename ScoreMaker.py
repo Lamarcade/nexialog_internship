@@ -98,7 +98,7 @@ class ScoreMaker:
         self.full_ranks = full_scores
         self.rank_stats = rank_stats
 
-        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score':full_scores['sorted_labels']})
+        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': full_scores['sorted_labels']})
 
         ESGTV.dropna(inplace = True)
         return ESGTV

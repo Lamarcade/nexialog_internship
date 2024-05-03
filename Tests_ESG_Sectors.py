@@ -76,12 +76,10 @@ st.plot_sectors()
 
 epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list)
 
-#epf = epf.risk_free_stats()
+epf = epf.risk_free_stats()
 
 #%% Sector weights for the tangent portfolio
 
-risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
-epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
 
 save = False

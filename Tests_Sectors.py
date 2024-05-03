@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Apr 24 11:46:33 2024
+Created on Fri May  3 11:54:24 2024
 
 @author: LoïcMARCADET
 """
-
 
 import numpy as np
 import pandas as pd
@@ -79,46 +78,46 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sect
 
 #epf = epf.risk_free_stats()
 
-#%% Sector weights for the tangent portfolio
+#%% Efficient frontier depending on the sector minimum constraint
 
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
+epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
+epf.plot_constrained_frontier(risks, returns)
 
 save = False
-count, num_iters = 1, (int(max(stocks_ESG)) - int(min(stocks_ESG))) // 5
+weight_10_range = [0.01, 0.02, 0.05, 0.09]
+weight_50_range = [0.001, 0.005, 0.01, 0.015]
 
-ESG_range = range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, 5)
+count, num_iters = 1, 4
 
-epf.new_figure()
 
-for min_ESG in ESG_range:
-    if not(count % 2):
-        print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
-    tangent_weights = epf.optimal_portfolio_ESG(min_ESG)
-    tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
-    epf.set_sectors_composition(tangent_weights)
-    if int(max(stocks_ESG)) - min_ESG < 5:
+for bound in weight_10_range:
+    print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
+    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.sector_constraint(bound)])
+    if count == 4:
         save = True
-    epf.plot_sectors_composition(min_ESG, save, provider)
+    epf.plot_constrained_frontier(risks_new, returns_new, sector_min = bound, title = "_min_sectors_", savefig = save, score_source = provider)
     count += 1
     
-#%% Sector weights evolution depending on the ESG constraint
+#%% Efficient frontier depending on the sector maximum constraint
 
-epf.plot_composition_change(60, 90, True, provider)
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
+epf.new_figure()
+#epf.plot_tangent(tangent_risk, tangent_return)
+epf.plot_constrained_frontier(risks, returns)
 
-#%% Efficient frontier with ESG and sector constraints
+save = False
+max_10_range = [0.9, 0.5, 0.2, 0.15]
+max_50_range = [0.9, 0.1, 0.05, 0.025]
 
-spf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list)
+count, num_iters = 1, 4
 
-risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 2)
-spf.new_figure()
-spf.plot_constrained_frontier(risks, returns)
 
-risks_esg, returns_esg, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(85)])
-
-risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.sector_constraint(0.01*np.ones(n_assets))])
-
-risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(85), spf.sector_constraint(0.01*np.ones(n_assets))])
-
-spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = 85)
-spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = 0.01)
-spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = 85, sector_min = 0.01, savefig = True, title = '_ESGSector_', score_source = provider)
+for bound in max_10_range:
+    print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
+    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.sector_constraint(bound, is_min = False)])
+    if count == 4:
+        save = True
+    epf.plot_constrained_frontier(risks_new, returns_new, sector_max = bound, title = '_max_sectors_', savefig = save, score_source = provider)
+    count += 1

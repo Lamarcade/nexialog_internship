@@ -206,8 +206,11 @@ class Portfolio:
         random_mu = [self.get_return(weight) for weight in weights]
         return random_sigma, random_mu
     
-    def new_figure(self, fig_size = (8,6)):
-        self.fig, self.ax = plt.subplots(figsize=fig_size)
+    def new_figure(self, fig_size = (8,6), four_plots = False):
+        if four_plots:
+            self.fig, self.ax = plt.subplots((2,2), figsize=fig_size)
+        else:
+            self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.existing_plot = False
         
     def make_title_save(self, figtitle, n_risky, savefig = False, score_source = None):

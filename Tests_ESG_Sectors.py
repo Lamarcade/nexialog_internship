@@ -50,9 +50,9 @@ SG_agencies.reduced_df()
 _ = SG_agencies.get_score_df()
 scores_valid = SG_agencies.keep_valid()
 
-agencies_df = []
+agencies_df_list = []
 for agency in scores_valid.columns:
-    agencies_df.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_valid[agency]}))
+    agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_valid[agency]}))
     
 
 #%% Get the stock data and keep the companies in common with the target variable
@@ -61,21 +61,25 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Refinitiv'
+provider = 'Su'
 
-_ = st.keep_common_tickers(agencies_df[1], sectors_list)
-n_assets = 10
-stocks_ESG = st.restrict_assets(n_assets)
+_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+#n_assets = 10
+#stocks_ESG = st.restrict_assets(n_assets)
+
+stocks_sectors, stocks_ESG = st.select_assets(5)
 st.compute_mean()
 st.compute_covariance()
 mean, _, rf = st.get_mean(), st.get_covariance(), st.get_rf()
 cov = st.covariance_approximation()
 
+n_assets = st.n_assets
+
 st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
-epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list)
+epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list.loc[st.index.values])
 
 #epf = epf.risk_free_stats()
 

@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.covariance import empirical_covariance
 
 class Stocks:
     def __init__(self,path, annual_rf):
@@ -52,7 +53,7 @@ class Stocks:
         self.returns = self.returns.loc[:, self.returns.columns.isin(tv_tickers)]
         return(self.targetESG)
         
-    def restrict_assets(self, n_assets):
+    def restrict_assets(self, n_assets = 50):
         self.n_assets = n_assets
         self.returns = self.returns.iloc[:, :n_assets]
         
@@ -61,13 +62,42 @@ class Stocks:
             if self.sectors is not None:
                 self.sectors = self.sectors.iloc[:n_assets]
             return(self.targetESG)
+     
+    def select_assets(self, n_multi = 5):
+        occurrences = {sector:0 for sector in self.sectors['Sector'].dropna().unique()}
+        asset_indices, row = pd.Index([0], dtype = int), 1
+        while any(s < n_multi for s in occurrences.values()) and (row < len(self.sectors)):
+            try:
+                new_sector = self.sectors['Sector'].loc[row]
+                if occurrences[new_sector] < n_multi and row in self.sectors.index:
+                    asset_indices = asset_indices.append(pd.Index([row]))
+                    occurrences[new_sector] +=1
+            except:
+                pass
+            row += 1
+
+        self.sectors = self.sectors.loc[asset_indices.values]
+        self.index = asset_indices
+        self.n_assets = len(asset_indices)
+        tags = self.sectors['Tag'].copy()
+        #tags = tags.filter(asset_indices)
+        self.returns = self.returns[tags]
+
+
+        if (self.targetESG is not None):
+            self.targetESG = self.targetESG[asset_indices.values]
+        return(self.sectors, self.targetESG)        
         
+     
     def compute_mean(self):
         self.mean = np.array(self.returns.mean(axis = 0))
         
     def compute_covariance(self):
         self.covariance = np.array(self.returns.cov())
         
+    def scikit_covariance(self):
+        self.scov = empirical_covariance(self.returns)
+    
     def get_mean(self):
         return self.mean
     
@@ -96,10 +126,9 @@ class Stocks:
         cov_approx = eigenvecs.dot(np.diag(positive_eigenvals)).dot(eigenvecs.T)
         return(cov_approx)
         
-    def sector_analysis(self, make_acronym=False, sector_map=None):
+    def sector_analysis(self, make_acronym=False):
         sectors_df = self.sectors.copy()
         sectors_count = sectors_df['Sector'].value_counts()
-
         # Create a CategoricalDtype with the correct order
         sorted_sectors = pd.CategoricalDtype(
             categories=sectors_count.index, ordered=True)
@@ -122,6 +151,6 @@ class Stocks:
         plt.figure(figsize = (8,12))
         ordered_sectors = self.sector_analysis(make_acronym = True)
         sns.histplot(data=ordered_sectors, y='Acronym', hue='Acronym', legend=False)
-        plt.title('Number of companies in each sector according to S&P,' + str(self.n_assets) + ' assets')
+        plt.title('Number of companies in each sector according to Refinitiv,' + str(self.n_assets) + ' assets')
         figtitle = 'Figures/Sectors_' + str(self.n_assets) + '.png'
         plt.savefig(figtitle, bbox_inches = 'tight')

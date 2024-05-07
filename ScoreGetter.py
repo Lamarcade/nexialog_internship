@@ -6,7 +6,8 @@ Created on Wed Apr 24 13:54:50 2024
 """
 
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class ScoreGetter:
     def __init__(self, path):
@@ -111,12 +112,15 @@ class ScoreGetter:
     def get_valid_tickers(self):
         return self.valid_tickers
         
-    def get_score_df(self):
+    def get_new_df(self):
         self.make_dict()
         return(pd.DataFrame(self.dict_agencies))
     
+    def get_score_df(self):
+        return self.score_df
+    
     def keep_valid(self):
-        score_df = self.get_score_df()
+        score_df = self.get_new_df()
         scores_valid = score_df[~(score_df.isna().any(axis=1))]
         self.valid_indices = scores_valid.index
         self.valid_tickers = self.tickerlist[self.valid_indices]
@@ -127,8 +131,13 @@ class ScoreGetter:
     
     def standardise_df(self):
         score_df = self.get_score_df()
-        scaler = StandardScaler()
-        return(scaler.fit_transform(score_df))
+        score_df = (score_df - score_df.mean()) / score_df.std()
+        return(score_df)
+    
+    def min_max_df(self):
+        score_df = self.get_score_df()
+        score_df = (score_df - score_df.min()) / (score_df.max()-score_df.min())
+        return(score_df)
     
     def get_rank_df(self, method = 'min'):
         scores_valid = self.keep_valid()
@@ -136,8 +145,35 @@ class ScoreGetter:
         scores_ranks = scores_ranks.rank(method = method)
         return(scores_ranks)
     
-    def ticker_sector(self):
-        RE_sector = self.RE.copy().rename(columns = {'Constituent RIC':'Tag','Industry':'Sector'})   
+    def ticker_sector(self, NCAIS = True):
+        NCAIS_map = {
+        '11':	'AGR Agriculture, Forestry, Fishing and Hunting',
+        '21':	'MIN Mining, Quarrying, and Oil and Gas Extraction',
+        '22':	'UTI Utilities',
+        '23':	'CON Construction',
+        '31-33':	'MAN Manufacturing',
+        '41/42':	'WHO Wholesale Trade',
+        '44-45':	'RET Retail Trade',
+        '48-49':	'TRA Transportation and Warehousing',
+        '51':	'INF Information',
+        '52':	'FIN Finance and Insurance',
+        '53':	'REA Real Estate and Rental and Leasing',
+        '54':	'PRO Professional, Scientific, and Technical Services',
+        '55':	'MAN Management of Companies and Enterprises',
+        '56':	'ADM Admini. & Support & Waste Management & Remediation Services',
+        '61':	'EDU Educational Services',
+        '62':	'HEA Health Care and Social Assistance',
+        '71':	'ART Arts, Entertainment, and Recreation',
+        '72':	'ACC Accommodation and Food Services',
+        '81':	'OTH Other Services (except Public Administration)',
+        '91/92':	'PUB Public Administration'
+        }
+        if NCAIS:
+            RE_sector = self.RE.copy()
+            RE_sector['Sector'] = RE_sector['NCAIS'].map(NCAIS_map)
+            RE_sector = RE_sector.rename(columns = {'Constituent RIC':'Tag'})  
+        else:
+            RE_sector = self.RE.copy().rename(columns = {'Constituent RIC':'Tag','Industry':'Sector'})   
         self.sector_df = RE_sector[['Tag', 'Sector']]
         
     def valid_ticker_sector(self):
@@ -169,3 +205,15 @@ class ScoreGetter:
         # Worst score across columns
         min_scores = ranks.min(axis = 1)
         return(pd.DataFrame({'Tag':self.valid_tickers,'Score':min_scores}))
+    
+    def plot_distributions(self, df, dist_type):
+        cmap = 'GnBu_d'
+        sns.set_theme(style="darkgrid")
+        fig, ax = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
+
+        for (i, agency) in enumerate(df.columns):
+            sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
+                         ax=ax[i], multiple='stack', legend=False)
+            ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
+
+        plt.savefig("Figures/" + dist_type + "_distributions.png")

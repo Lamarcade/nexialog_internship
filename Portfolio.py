@@ -36,7 +36,7 @@ class Portfolio:
             self.rf_params = True
             
             if self.sectors is not None:
-                self.sectors.loc[-1] = ['RFA', 'Risk-Free Asset']
+                self.sectors.loc[-1] = ['RFA', 'RIS Risk-Free Asset']
                 self.sectors.sort_index(inplace = True)
         
             return self
@@ -207,6 +207,7 @@ class Portfolio:
         return random_sigma, random_mu
     
     def new_figure(self, fig_size = (8,6), four_plots = False):
+        sns.set_theme()
         if four_plots:
             self.fig, self.ax = plt.subplots((2,2), figsize=fig_size)
         else:

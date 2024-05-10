@@ -41,12 +41,11 @@ sectors_list = SG.get_valid_sector_df()
 #ESGTV2 = SM.make_score(SMG)
 
 # Worst score approach
-#ESGTV3 = SG.worst_score(scores_ranks, n_classes = 7)
+ESGTV3 = SG.worst_score(scores_ranks, n_classes = 10)
 
 # Agencies scores
 SG_agencies = ScoreGetter('ESG/Scores/')
 SG_agencies.reduced_df()
-_ = SG_agencies.get_score_df()
 scores_valid = SG_agencies.keep_valid()
 
 agencies_df_list = []
@@ -60,9 +59,9 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
+provider = 'Worst'
 
-_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+_ = st.keep_common_tickers(ESGTV3, sectors_list)
 
 #n_assets = 50
 #stocks_ESG = st.restrict_assets(n_assets)
@@ -84,7 +83,7 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sect
 
 #%% Efficient frontier depending on the sector minimum constraint
 
-risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 1)
 epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
@@ -99,7 +98,7 @@ count, num_iters = 1, 4
 
 for bound in weight_10_range:
     print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
-    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.sector_constraint(bound)])
+    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [epf.sector_constraint(bound)])
     if count == 4:
         save = True
     epf.plot_constrained_frontier(risks_new, returns_new, sector_min = bound, title = "_min_sectors_", savefig = save, score_source = provider)
@@ -107,7 +106,7 @@ for bound in weight_10_range:
     
 #%% Efficient frontier depending on the sector maximum constraint
 
-risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 1)
 epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
@@ -120,7 +119,7 @@ count, num_iters = 1, 4
 
 for bound in max_10_range:
     print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
-    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.sector_constraint(bound, is_min = False)])
+    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [epf.sector_constraint(bound, is_min = False)])
     if count == 4:
         save = True
     epf.plot_constrained_frontier(risks_new, returns_new, sector_max = bound, title = '_max_sectors_', savefig = save, score_source = provider)

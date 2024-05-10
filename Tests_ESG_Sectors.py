@@ -42,12 +42,11 @@ sectors_list = SG.get_valid_sector_df()
 #ESGTV2 = SM.make_score(SMG)
 
 # Worst score approach
-#ESGTV3 = SG.worst_score(scores_ranks, n_classes = 7)
+ESGTV3 = SG.worst_score(scores_ranks, n_classes = 10)
 
 # Agencies scores
 SG_agencies = ScoreGetter('ESG/Scores/')
 SG_agencies.reduced_df()
-_ = SG_agencies.get_score_df()
 scores_valid = SG_agencies.keep_valid()
 
 agencies_df_list = []
@@ -61,9 +60,9 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
+provider = 'Worst'
 
-_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+_ = st.keep_common_tickers(ESGTV3, sectors_list)
 #n_assets = 10
 #stocks_ESG = st.restrict_assets(n_assets)
 
@@ -88,9 +87,10 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sect
 #epf.plot_tangent(tangent_risk, tangent_return)
 
 save = False
-count, num_iters = 1, (int(max(stocks_ESG)) - int(min(stocks_ESG))) // 5
+step = 1
+count, num_iters = 1, 1 + (int(max(stocks_ESG)) - int(min(stocks_ESG))) // step
 
-ESG_range = range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, 5)
+ESG_range = range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, step)
 
 epf.new_figure()
 
@@ -100,29 +100,31 @@ for min_ESG in ESG_range:
     tangent_weights = epf.optimal_portfolio_ESG(min_ESG)
     tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
     epf.set_sectors_composition(tangent_weights)
-    if int(max(stocks_ESG)) - min_ESG < 5:
+    if int(max(stocks_ESG)) - min_ESG < step:
         save = True
     epf.plot_sectors_composition(min_ESG, save, provider)
     count += 1
     
 #%% Sector weights evolution depending on the ESG constraint
 
-epf.plot_composition_change(60, 90, True, provider)
+epf.plot_composition_change(0, int(max(stocks_ESG)), True, provider)
 
 #%% Efficient frontier with ESG and sector constraints
 
-spf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list)
+spf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
 
-risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 2)
+risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 1)
 spf.new_figure()
 spf.plot_constrained_frontier(risks, returns)
 
-risks_esg, returns_esg, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(85)])
+threshold = 5
+risks_esg, returns_esg, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.ESG_constraint(threshold)])
 
-risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.sector_constraint(0.01*np.ones(n_assets))])
+n_sectors = stocks_sectors['Sector'].nunique()
+risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.sector_constraint(0.01*np.ones(n_sectors))])
 
-risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(85), spf.sector_constraint(0.01*np.ones(n_assets))])
+risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.ESG_constraint(threshold), spf.sector_constraint(0.01*np.ones(n_sectors))])
 
-spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = 85)
+spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = threshold)
 spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = 0.01)
-spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = 85, sector_min = 0.01, savefig = True, title = '_ESGSector_', score_source = provider)
+spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = threshold, sector_min = 0.01, savefig = True, title = '_ESGSector_', score_source = provider)

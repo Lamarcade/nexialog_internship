@@ -42,7 +42,7 @@ ESGTV = SM.make_score(SMK, n_classes = 10)
 ESGTV2 = SM.make_score(SMG, n_classes = 10)
 
 # Worst score approach
-#ESGTV3 = SG.worst_score(scores_ranks, n_classes = 7)
+ESGTV3 = SG.worst_score(scores_ranks, n_classes = 10)
 
 # Agencies scores
 SG_agencies = ScoreGetter('ESG/Scores/')
@@ -65,8 +65,8 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
-_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+provider = 'Worst'
+_ = st.keep_common_tickers(ESGTV3, sectors_list)
 #_ = st.keep_common_tickers(ESGTV, sectors_list)
 
 stocks_sectors, stocks_ESG = st.select_assets(5)
@@ -99,7 +99,7 @@ epf.new_figure()
 epf.plot_constrained_frontier(risks, returns)
 
 save = False
-step = 5
+step = 1
 count, num_iters = 1, 1 + ((int(max(stocks_ESG))) - int(min(stocks_ESG))) // step
 
 

@@ -60,9 +60,9 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Worst'
+provider = 'Su'
 
-_ = st.keep_common_tickers(ESGTV3, sectors_list)
+_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
 #n_assets = 10
 #stocks_ESG = st.restrict_assets(n_assets)
 
@@ -74,7 +74,7 @@ cov = st.covariance_approximation()
 
 n_assets = st.n_assets
 
-st.plot_sectors()
+#st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 

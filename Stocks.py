@@ -97,18 +97,24 @@ class Stocks:
             self.targetESG = self.targetESG[asset_indices.values]
         return(self.sectors, self.targetESG)        
     
-    def exclude_assets(self, threshold = 0.2):
+    def exclude_assets(self, threshold = 0.2, ascending_better = True):
         worst_count = int(threshold * self.n_assets) + 1
-        best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[worst_count:]
-        
+        if ascending_better:
+            best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[worst_count:]
+        else:
+            best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[:worst_count]
+        best_indices = np.sort(best_indices)
         self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
         
         if self.sectors is not None:
             self.sectors = self.sectors.iloc[best_indices]
-            self.n_assets = len(self.sectors)
-        self.index = self.sectors.index
+            self.index = self.sectors.index
+            
+        self.n_assets -= worst_count 
+        
         if self.tickers is not None:
             self.tickers = self.tickers[best_indices]
+            
         self.returns = self.returns.iloc[:, best_indices]
         return(self.sectors, self.targetESG)
      

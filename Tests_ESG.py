@@ -65,8 +65,8 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Worst'
-_ = st.keep_common_tickers(ESGTV3, sectors_list)
+provider = 'Su'
+_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
 #_ = st.keep_common_tickers(ESGTV, sectors_list)
 
 stocks_sectors, stocks_ESG = st.select_assets(5)
@@ -111,3 +111,37 @@ for min_ESG in range(int(min(stocks_ESG)), int(max(stocks_ESG)) + step, step):
         save = True
     epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider)
     count += 1
+
+#%% Exclude worst ESG stocks from the universe
+
+threshold_list = np.arange(0, 1, 0.05)
+sharpes_t = []
+# 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
+provider = 'Su'
+    
+for threshold in threshold_list:
+    est = Stocks(path, annual_rf)
+    est.process_data()
+    est.compute_monthly_returns()
+
+    
+    _ = est.keep_common_tickers(agencies_df_list[1], sectors_list)
+    
+    _, _ = est.select_assets(5)
+    stocks_sectors, stocks_ESG = est.exclude_assets(threshold)
+    
+    est.compute_mean()
+    est.compute_covariance()
+    mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
+    cov = est.covariance_approximation()
+
+    xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+    xpf = xpf.risk_free_stats()
+    
+    weights_t = xpf.tangent_portfolio()
+    sharpes_t.append(xpf.get_sharpe(weights_t))
+
+xpf.new_figure()
+xpf.plot_sharpe_exclusion(sharpes_t, threshold_list, True, provider)
+    
+    

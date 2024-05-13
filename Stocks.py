@@ -13,7 +13,7 @@ from sklearn.covariance import empirical_covariance
 class Stocks:
     def __init__(self,path, annual_rf):
         self.stocks = pd.read_csv(path)
-        self.n_assets = self.stocks.shape[0]
+        self.n_assets = self.stocks['Symbol'].nunique()
         self.annual_rf = annual_rf
         self.rf = (1+annual_rf)**(1/12)-1
         
@@ -51,16 +51,25 @@ class Stocks:
         # Keep only the companies for with we have ESG Scores
         tv_tickers = tv_filtered['Tag'].tolist()
         self.returns = self.returns.loc[:, self.returns.columns.isin(tv_tickers)]
+        self.tickers = np.intersect1d(tv_tickers, mr_tickers)
+        self.index = tv_filtered.index
+        self.n_assets = len(self.tickers)
         return(self.targetESG)
         
     def restrict_assets(self, n_assets = 50):
         self.n_assets = n_assets
         self.returns = self.returns.iloc[:, :n_assets]
         
+
+        if self.tickers is not None:
+            self.tickers = self.tickers[:n_assets]
+        if self.index is not None:
+            self.index = self.index[:n_assets]
+        if self.sectors is not None:
+            self.sectors = self.sectors.iloc[:n_assets]                
         if (self.targetESG is not None):
             self.targetESG = self.targetESG[:n_assets]
-            if self.sectors is not None:
-                self.sectors = self.sectors.iloc[:n_assets]
+
             return(self.targetESG)
      
     def select_assets(self, n_multi = 5):
@@ -87,7 +96,21 @@ class Stocks:
         if (self.targetESG is not None):
             self.targetESG = self.targetESG[asset_indices.values]
         return(self.sectors, self.targetESG)        
+    
+    def exclude_assets(self, threshold = 0.2):
+        worst_count = int(threshold * self.n_assets) + 1
+        best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[worst_count:]
         
+        self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
+        
+        if self.sectors is not None:
+            self.sectors = self.sectors.iloc[best_indices]
+            self.n_assets = len(self.sectors)
+        self.index = self.sectors.index
+        if self.tickers is not None:
+            self.tickers = self.tickers[best_indices]
+        self.returns = self.returns.iloc[:, best_indices]
+        return(self.sectors, self.targetESG)
      
     def compute_mean(self):
         self.mean = np.array(self.returns.mean(axis = 0))
@@ -120,9 +143,6 @@ class Stocks:
         # Get the SPD covariance that minimizes the distance with the actual covariance
         eigenvals, eigenvecs = np.linalg.eigh(self.covariance)
         positive_eigenvals = np.fmax(eigenvals, np.zeros(len(eigenvals)))
-        #print(positive_eigenvals)
-        #print(eigenvecs.shape)
-        #print(positive_eigenvals.shape)
         cov_approx = eigenvecs.dot(np.diag(positive_eigenvals)).dot(eigenvecs.T)
         return(cov_approx)
         

@@ -36,7 +36,7 @@ class Portfolio:
             self.rf_params = True
             
             if self.sectors is not None:
-                self.sectors.loc[-1] = ['RFA', 'RIS Risk-Free Asset']
+                self.sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
                 self.sectors.sort_index(inplace = True)
         
             return self
@@ -73,7 +73,7 @@ class Portfolio:
         total_weight = sector_weights.sum()
         sector_proportions = sector_weights / total_weight
         composition = pd.DataFrame({'Sector': sector_proportions.index, 'Weight': sector_proportions.values})
-        composition['Acronym'] = composition['Sector'].str.extract(r'([A-Z]{3})')
+        composition['Acronym'] = composition['Sector'].str.extract(r'([A-Z]{4})')
         # Create dictionary with sector proportions
         self.sectors_composition = composition
     

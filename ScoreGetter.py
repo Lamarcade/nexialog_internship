@@ -147,26 +147,26 @@ class ScoreGetter:
     
     def ticker_sector(self, NCAIS = True):
         NCAIS_map = {
-        '11':	'AGR Agriculture, Forestry, Fishing and Hunting',
-        '21':	'MIN Mining, Quarrying, and Oil and Gas Extraction',
-        '22':	'UTI Utilities',
-        '23':	'CON Construction',
-        '31-33':	'MAN Manufacturing',
-        '41/42':	'WHO Wholesale Trade',
-        '44-45':	'RET Retail Trade',
-        '48-49':	'TRA Transportation and Warehousing',
-        '51':	'INF Information',
-        '52':	'FIN Finance and Insurance',
-        '53':	'REA Real Estate and Rental and Leasing',
-        '54':	'PRO Professional, Scientific, and Technical Services',
-        '55':	'MAN Management of Companies and Enterprises',
-        '56':	'ADM Admini. & Support & Waste Management & Remediation Services',
-        '61':	'EDU Educational Services',
-        '62':	'HEA Health Care and Social Assistance',
-        '71':	'ART Arts, Entertainment, and Recreation',
-        '72':	'ACC Accommodation and Food Services',
-        '81':	'OTH Other Services (except Public Administration)',
-        '91/92':	'PUB Public Administration'
+        '11':	'AGRI Agriculture, Forestry, Fishing and Hunting',
+        '21':	'MINI Mining, Quarrying, and Oil and Gas Extraction',
+        '22':	'UTIL Utilities',
+        '23':	'CONS Construction',
+        '31-33':	'MANU Manufacturing',
+        '41/42':	'WHOL Wholesale Trade',
+        '44-45':	'RETA Retail Trade',
+        '48-49':	'TRAN Transportation and Warehousing',
+        '51':	'INFO Information',
+        '52':	'FINA Finance and Insurance',
+        '53':	'REAL Real Estate and Rental and Leasing',
+        '54':	'PROF Professional, Scientific, and Technical Services',
+        '55':	'MANA Management of Companies and Enterprises',
+        '56':	'ADMI Admini. & Support & Waste Management & Remediation Services',
+        '61':	'EDUC Educational Services',
+        '62':	'HEAL Health Care and Social Assistance',
+        '71':	'ARTS Arts, Entertainment, and Recreation',
+        '72':	'ACCO Accommodation and Food Services',
+        '81':	'OTHE Other Services (except Public Administration)',
+        '91/92':	'PUBL Public Administration'
         }
         if NCAIS:
             RE_sector = self.RE.copy()

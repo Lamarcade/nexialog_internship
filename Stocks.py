@@ -75,6 +75,7 @@ class Stocks:
     def select_assets(self, n_multi = 5):
         occurrences = {sector:0 for sector in self.sectors['Sector'].dropna().unique()}
         asset_indices, row = pd.Index([0], dtype = int), 1
+        occurrences[self.sectors['Sector'].loc[0]] +=1
         while any(s < n_multi for s in occurrences.values()) and (row < len(self.sectors)):
             try:
                 new_sector = self.sectors['Sector'].loc[row]
@@ -169,7 +170,7 @@ class Stocks:
 
         # Retrieve 3-letter sector acronym
         if make_acronym:
-            sorted_df['Acronym'] = sorted_df['Sector'].str.extract(r'([A-Z]{3})')
+            sorted_df['Acronym'] = sorted_df['Sector'].str.extract(r'([A-Z]{4})')
 
         return sorted_df
     

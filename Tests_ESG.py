@@ -52,7 +52,7 @@ scores_valid = SG_agencies.get_score_df()
 #standard_scores = SG_agencies.standardise_df()
 #min_max_scores = SG_agencies.min_max_df()
 
-#SG_agencies.plot_distributions(old_scores, "")
+#SG_agencies.plot_distributions(scores_valid, "")
 #SG_agencies.plot_distributions(min_max_scores, "min_max")
 
 agencies_df_list = []
@@ -76,7 +76,7 @@ st.compute_covariance()
 mean, old_cov , rf = st.get_mean(), st.get_covariance(), st.get_rf()
 cov = st.covariance_approximation()
 
-st.plot_sectors()
+#st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
@@ -99,7 +99,7 @@ epf.new_figure()
 epf.plot_constrained_frontier(risks, returns)
 
 save = False
-step = 1
+step = 5
 count, num_iters = 1, 1 + ((int(max(stocks_ESG))) - int(min(stocks_ESG))) // step
 
 
@@ -115,33 +115,36 @@ for min_ESG in range(int(min(stocks_ESG)), int(max(stocks_ESG)) + step, step):
 #%% Exclude worst ESG stocks from the universe
 
 threshold_list = np.arange(0, 1, 0.05)
-sharpes_t = []
+sharpes_t = [[] for i in range(4)]
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
-    
-for threshold in threshold_list:
-    est = Stocks(path, annual_rf)
-    est.process_data()
-    est.compute_monthly_returns()
+#provider = 'Su'
 
+for i in range(4):
+    for threshold in threshold_list:
+        est = Stocks(path, annual_rf)
+        est.process_data()
+        est.compute_monthly_returns()
     
-    _ = est.keep_common_tickers(agencies_df_list[1], sectors_list)
+        
+        _ = est.keep_common_tickers(agencies_df_list[i], sectors_list)
+        
+        _, _ = est.select_assets(5)
+        stocks_sectors, stocks_ESG = est.exclude_assets(threshold)
+        
+        est.compute_mean()
+        est.compute_covariance()
+        mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
+        cov = est.covariance_approximation()
     
-    _, _ = est.select_assets(5)
-    stocks_sectors, stocks_ESG = est.exclude_assets(threshold)
-    
-    est.compute_mean()
-    est.compute_covariance()
-    mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
-    cov = est.covariance_approximation()
-
-    xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
-    xpf = xpf.risk_free_stats()
-    
-    weights_t = xpf.tangent_portfolio()
-    sharpes_t.append(xpf.get_sharpe(weights_t))
+        xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+        xpf = xpf.risk_free_stats()
+        
+        weights_t = xpf.tangent_portfolio()
+        sharpes_t[i].append(xpf.get_sharpe(weights_t))
 
 xpf.new_figure()
-xpf.plot_sharpe_exclusion(sharpes_t, threshold_list, True, provider)
-    
-    
+save = False
+for i, agency in enumerate(dict_agencies.keys()):
+    if i == 3:
+        save = True
+    xpf.plot_sharpe_exclusion(sharpes_t[i], threshold_list, save, agency)    

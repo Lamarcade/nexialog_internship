@@ -59,9 +59,9 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Worst'
+provider = 'Su'
 
-_ = st.keep_common_tickers(ESGTV3, sectors_list)
+_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
 
 #n_assets = 50
 #stocks_ESG = st.restrict_assets(n_assets)
@@ -79,7 +79,7 @@ st.plot_sectors()
 
 epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list.loc[st.index.values])
 
-#epf = epf.risk_free_stats()
+epf = epf.risk_free_stats()
 
 #%% Efficient frontier depending on the sector minimum constraint
 

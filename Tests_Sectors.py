@@ -73,7 +73,7 @@ st.compute_covariance()
 mean, _, rf = st.get_mean(), st.get_covariance(), st.get_rf()
 cov = st.covariance_approximation()
 
-st.plot_sectors()
+#st.plot_sectors()
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 

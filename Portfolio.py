@@ -13,7 +13,7 @@ import seaborn as sns
 import pandas as pd
 
 class Portfolio:
-    def __init__(self,mu,sigma, rf, short_sales = True, sectors = None):
+    def __init__(self,mu,sigma, rf, short_sales = True, sectors = None, rf_params = False):
         self.mu = mu
         self.sigma = sigma
         self.rf = rf
@@ -22,7 +22,7 @@ class Portfolio:
         self.sectors = sectors
         
         # Is the risk-free included in the mean and covariance
-        self.rf_params = False
+        self.rf_params = rf_params
         
         self.existing_plot = False
         

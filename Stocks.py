@@ -28,13 +28,15 @@ class Stocks:
         # Pivot the DataFrame to have symbols as columns
         self.stocks_pivot = self.stocks.pivot(index='Date', columns='Symbol', values='Adj Close')
         
-    def compute_monthly_returns(self, n_valid = 50):
+    def compute_monthly_returns(self, n_valid = 50, drop_index = None):
         # Calculate monthly returns for each symbol
         monthly_returns = self.stocks_pivot.resample('ME').ffill().pct_change()
 
         # Get rid of the first row of NaN
         monthly_returns = monthly_returns.iloc[1:]
-   
+        if drop_index is not None:
+           monthly_returns = monthly_returns.iloc[drop_index:] 
+    
         # Drop columns that have less than n_valid valid values
         self.returns = monthly_returns.dropna(axis=1, thresh=n_valid)
      
@@ -105,25 +107,46 @@ class Stocks:
         else:
             best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[:worst_count]
         best_indices = np.sort(best_indices)
-        self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
+# =============================================================================
+#         self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
+#         
+#         if self.sectors is not None:
+#             self.sectors = self.sectors.iloc[best_indices]
+#             self.index = self.sectors.index
+#             
+#         self.n_assets -= worst_count 
+#         
+#         if self.tickers is not None:
+#             self.tickers = self.tickers[best_indices]
+#             
+#         self.returns = self.returns.iloc[:, best_indices]
+# =============================================================================
+        sectors, targetESG = self.keep_assets(best_indices)
+        return(sectors, targetESG)
+    
+    def keep_assets(self, int_indices):
+        if not(self.rf_params):
+            int_indices = [x - 1 for x in int_indices]
+        self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in int_indices]
         
         if self.sectors is not None:
-            self.sectors = self.sectors.iloc[best_indices]
+            self.sectors = self.sectors.iloc[int_indices]
             self.index = self.sectors.index
             
-        self.n_assets -= worst_count 
+        self.n_assets -= (self.n_assets - len(int_indices))
         
         if self.tickers is not None:
-            self.tickers = self.tickers[best_indices]
+            self.tickers = self.tickers[int_indices]
             
-        self.returns = self.returns.iloc[:, best_indices]
+        self.returns = self.returns.iloc[:, int_indices]
         return(self.sectors, self.targetESG)
-     
+    
     def compute_mean(self):
         self.mean = np.array(self.returns.mean(axis = 0))
         
-    def compute_covariance(self):
+    def compute_covariance(self, bias = False):
         self.covariance = np.array(self.returns.cov())
+        #self.covariance = np.cov(self.returns, bias = bias)
         
     def scikit_covariance(self):
         self.scov = empirical_covariance(self.returns)

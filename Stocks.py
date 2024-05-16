@@ -100,8 +100,12 @@ class Stocks:
             self.targetESG = self.targetESG[asset_indices.values]
         return(self.sectors, self.targetESG)        
     
-    def exclude_assets(self, threshold = 0.2, ascending_better = True):
-        worst_count = int(threshold * self.n_assets) + 1
+    def exclude_assets(self, count = 10, threshold = None, ascending_better = True):
+        if threshold is not None:
+            worst_count = int(threshold * self.n_assets) + 1
+        else:
+            worst_count = count
+        
         if ascending_better:
             best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[worst_count:]
         else:

@@ -48,6 +48,7 @@ for agency in scores_ranks.columns:
 st = Stocks(path, annual_rf)
 st.process_data()
 st.compute_monthly_returns(n_valid = 50, drop_index = 60)
+#st.compute_monthly_returns(n_valid = 50, drop_index = 0)
 #st.compute_monthly_returns(n_valid = 50)
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
@@ -71,3 +72,5 @@ neg1 = eigv[eigv <=0]
 #neg2 =  bias_eigv[bias_eigv <=0]
 print(neg1)
 #print(neg2)
+
+st.plot_sectors()

@@ -51,10 +51,11 @@ SG_agencies.reduced_df()
 SG_agencies.set_valid_df()
 scores_valid = SG_agencies.get_score_df()
 min_max_scores = SG_agencies.min_max_df()
+standard_scores = SG_agencies.standardise_df()
 
 agencies_df_list = []
 for agency in scores_ranks.columns:
-    agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': min_max_scores[agency]}))
+    agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': standard_scores[agency]}))
     
 #%% Get the stock data and keep the companies in common with the target variable
 
@@ -62,13 +63,14 @@ def Sharpe_analysis(df_list, dict_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
     
     save = False
     spearmans = {}
+    reduced_df = pd.DataFrame()
     # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
     for i, agency in enumerate(dict_agencies.keys()):
         #provider = 'Su'
         st = Stocks(path, annual_rf)
         st.process_data()
         st.compute_monthly_returns()
-        _ = st.keep_common_tickers(agencies_df_list[i], sectors_list)
+        _ = st.keep_common_tickers(df_list[i], sectors_list)
         #_ = st.keep_common_tickers(ESGTV, sectors_list)
         
         stocks_sectors, stocks_ESG = st.select_assets(5)
@@ -77,6 +79,8 @@ def Sharpe_analysis(df_list, dict_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
         st.compute_covariance()
         mean, old_cov , rf = st.get_mean(), st.get_covariance(), st.get_rf()
         cov = st.covariance_approximation()
+        
+        reduced_df[agency] = stocks_ESG
         
         # Build a portfolio with restrictions on the minimal ESG score
         if i == 0:
@@ -89,18 +93,21 @@ def Sharpe_analysis(df_list, dict_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
         
         epf.set_ESGs(stocks_ESG)
         
-        sharpes, ESG_list = epf.efficient_frontier_ESG(low_ESG, up_ESG, interval = step)
+        emin, emax = min(stocks_ESG), max(stocks_ESG)
+        sharpes, ESG_list = epf.efficient_frontier_ESG(emin, emax, interval = 0.1)
         spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
         if agency == 'RE':
             save = True
         epf.plot_sharpe_speed(sharpes, ESG_list, save = save, source = agency)
-    return spearmans, epf
+
+    return spearmans, epf, reduced_df
         
 step = 0.05
 low_ESG, up_ESG = 0, 1.05
 ESG_range = np.arange(low_ESG,up_ESG, step)
-spearmans, epf = Sharpe_analysis(agencies_df_list, dict_agencies)
+spearmans, epf, reduced_df = Sharpe_analysis(agencies_df_list, dict_agencies)
 
+SG_agencies.plot_distributions(reduced_df, "normalized 62")
 #%% 
-epf.plot_sector_evolution(ESG_range, save = True, source = "Refinitiv")
-epf.plot_sector_evolution(np.arange(0.7, 0.95, 0.05), save = True, source = "Refinitiv")
+#epf.plot_sector_evolution(ESG_range, save = True, source = "Refinitiv")
+#epf.plot_sector_evolution(np.arange(0.7, 0.95, 0.05), save = True, source = "Refinitiv")

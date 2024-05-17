@@ -13,6 +13,8 @@ from Stocks import Stocks
 from ScoreGetter import ScoreGetter
 from ScoreMaker import ScoreMaker
 
+from scipy.stats import spearmanr
+
 path = "Portefeuille/sp500_stocks_short.csv"
 annual_rf = 0.05 # Risk-free rate
 
@@ -41,14 +43,55 @@ scores_valid = SG_agencies.get_score_df()
 agencies_df_list = []
 for agency in scores_ranks.columns:
     agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_valid[agency]}))
+    
+min_max_scores = SG_agencies.min_max_df()
 
+min_max_list = []
+for agency in min_max_scores.columns:
+    min_max_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': min_max_scores[agency]}))
+    
+
+#%% Asset weights evolution
+st = Stocks(path, annual_rf)
+st.process_data()
+st.compute_monthly_returns(drop_index = 60)
+
+# 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
+provider = 'Su'
+_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+#_ = st.keep_common_tickers(ESGTV, sectors_list)
+
+stocks_sectors, stocks_ESG = st.select_assets(5)
+#stocks_ESG = st.restrict_assets(50)
+st.compute_mean()
+st.compute_covariance()
+mean, old_cov , rf = st.get_mean(), st.get_covariance(), st.get_rf()
+cov = st.covariance_approximation()
+
+#st.plot_sectors()
+
+#%% Build a portfolio with restrictions on the minimal ESG score
+
+epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, tickers = st.tickers)
+#tangent_weights = epf.tangent_portfolio()
+#tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+
+epf = epf.risk_free_stats()
+
+emin, emax = int(min(stocks_ESG)), int(max(stocks_ESG))
+step = 1
+ESG_range = np.arange(emin, emax, 1)
+epf.plot_asset_evolution(ESG_range, save = True)
+
+
+#%% Sharpes with exclusion
 sharpes_t = [[] for i in range(4)]
 
 for i, agency in enumerate(dict_agencies.keys()):
     #%% Get the stock data and keep the companies in common with the target variable
     st = Stocks(path, annual_rf)
     st.process_data()
-    st.compute_monthly_returns()
+    st.compute_monthly_returns(drop_index = 60)
     
     # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
     provider = 'Su'
@@ -139,3 +182,60 @@ for i, agency in enumerate(dict_agencies.keys()):
     if i == 3:
         save = True
     xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency)   
+    
+#%% Sharpe speed
+
+low_ESG, up_ESG = 0, 1.05
+interval = 0.05
+spearmans = {}
+for i, agency in enumerate(dict_agencies.keys()):
+    #% Get the stock data and keep the companies in common with the target variable
+    st = Stocks(path, annual_rf)
+    st.process_data()
+    st.compute_monthly_returns(drop_index = 60)
+    
+    # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
+    _ = st.keep_common_tickers(min_max_list[i], sectors_list)
+    #_ = st.keep_common_tickers(ESGTV, sectors_list)
+    
+    stocks_sectors, stocks_ESG = st.select_assets(5)
+    #stocks_ESG = st.restrict_assets(50)
+    st.compute_mean()
+    st.compute_covariance()
+    mean, old_cov , rf = st.get_mean(), st.get_covariance(), st.get_rf()
+    cov = st.covariance_approximation()
+    
+    #% Build a portfolio with restrictions on the minimal ESG score
+    
+    finder_pf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False)
+    #tangent_weights = epf.tangent_portfolio()
+    #tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+    
+    finder_pf = finder_pf.risk_free_stats()
+    
+    indices, ESG_range, find_sharpes = finder_pf.find_efficient_assets(low_ESG, up_ESG, interval, criterion = 10**(-3))
+    
+    stocks_sectors, stocks_ESG = st.keep_assets(indices)
+    st.compute_mean()
+    st.compute_covariance()
+    mean, old_cov , rf = st.get_mean(), st.get_covariance(), st.get_rf()
+    cov = st.covariance_approximation()
+  
+    if i==0:
+        xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+        #tangent_weights = epf.tangent_portfolio()
+        #tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+    
+        xpf = xpf.risk_free_stats()
+        xpf.new_figure(fig_size = (12,12))
+  
+    epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+
+
+    epf = epf.risk_free_stats()
+    
+    sharpes, ESG_list = epf.efficient_frontier_ESG(low_ESG, up_ESG, interval = interval)
+    spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
+    if agency == 'RE':
+        save = True
+    xpf.plot_sharpe_speed(sharpes, ESG_list, save = save, source = agency)

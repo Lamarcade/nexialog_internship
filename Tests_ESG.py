@@ -49,10 +49,10 @@ SG_agencies = ScoreGetter('ESG/Scores/')
 SG_agencies.reduced_df()
 SG_agencies.set_valid_df()
 scores_valid = SG_agencies.get_score_df()
-#standard_scores = SG_agencies.standardise_df()
+standard_scores = SG_agencies.standardise_df()
 #min_max_scores = SG_agencies.min_max_df()
 
-#SG_agencies.plot_distributions(scores_valid, "")
+SG_agencies.plot_distributions(scores_valid, "no_norma")
 #SG_agencies.plot_distributions(min_max_scores, "min_max")
 
 agencies_df_list = []

@@ -206,14 +206,14 @@ class ScoreGetter:
         min_scores = ranks.min(axis = 1)
         return(pd.DataFrame({'Tag':self.valid_tickers,'Score':min_scores}))
     
-    def plot_distributions(self, df, dist_type):
+    def plot_distributions(self, df, dist_type, binwidth = 0.1):
         cmap = 'GnBu_d'
         sns.set_theme(style="darkgrid")
         fig, ax = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
 
         for (i, agency) in enumerate(df.columns):
             sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
-                         ax=ax[i], multiple='stack', legend=False)
+                         ax=ax[i], multiple='stack', binwidth = binwidth, legend=False)
             ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
 
         plt.savefig("Figures/" + dist_type + "_distributions.png")

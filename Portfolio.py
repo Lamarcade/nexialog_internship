@@ -13,7 +13,7 @@ import seaborn as sns
 import pandas as pd
 
 class Portfolio:
-    def __init__(self,mu,sigma, rf, short_sales = True, sectors = None, rf_params = False):
+    def __init__(self,mu,sigma, rf, short_sales = True, sectors = None, tickers = None, rf_params = False):
         self.mu = mu
         self.sigma = sigma
         self.rf = rf
@@ -25,6 +25,8 @@ class Portfolio:
         self.rf_params = rf_params
         
         self.existing_plot = False
+        
+        self.tickers = tickers
         
     def risk_free_stats(self):
         if not(self.rf_params):

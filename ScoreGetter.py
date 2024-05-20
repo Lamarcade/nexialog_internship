@@ -183,7 +183,7 @@ class ScoreGetter:
     def get_valid_sector_df(self):
         return self.valid_sector_df
     
-    def worst_score(self, scores_ranks, n_classes):
+    def worst_score(self, scores_ranks, n_classes, reverse = False, get_all = False):
         ranks = scores_ranks.copy()
         
         # Transforms the ranks into 0 to n_classes-1 scores
@@ -196,15 +196,22 @@ class ScoreGetter:
             return n_classes-1
         
         # A higher rank indicates a low score
-        reverse_rank = lambda x: 334-x
+        #reverse_rank = lambda x: 334-x
         
         for agency in ranks.columns:
-            ranks[agency] = ranks[agency].map(reverse_rank)
+            #ranks[agency] = ranks[agency].map(reverse_rank)
             ranks[agency] = ranks[agency].map(mapping)
         
         # Worst score across columns
-        min_scores = ranks.min(axis = 1)
-        return(pd.DataFrame({'Tag':self.valid_tickers,'Score':min_scores}))
+        if reverse:
+            scores = ranks.max(axis = 1)
+        else:
+            scores = ranks.min(axis = 1)
+        
+        res = pd.DataFrame({'Tag':self.valid_tickers,'Score':scores})
+        if get_all:
+           return res, ranks 
+        return(res)
     
     def plot_distributions(self, df, dist_type, binwidth = 0.1):
         cmap = 'GnBu_d'

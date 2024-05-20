@@ -69,6 +69,7 @@ cov = st.covariance_approximation()
 
 #%% Sectors with exclusion
 weights_agencies = [{} for i in range(4)]
+assets_weights_agencies = [{} for i in range(4)]
 
 for i, agency in enumerate(dict_agencies.keys()):
     #%% Get the stock data and keep the companies in common with the target variable
@@ -109,8 +110,12 @@ for i, agency in enumerate(dict_agencies.keys()):
     cov = st.covariance_approximation()
     
     count_list = range(len(indices))
+    assets_weights = {}
     sectors_weights = {}
+    print('Analysis for {agency}'.format(agency = agency))
     for count in count_list:
+        if not(count%2):
+            print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = len(indices)))
         est = Stocks(path, annual_rf)
         est.process_data()
         est.compute_monthly_returns()
@@ -127,7 +132,7 @@ for i, agency in enumerate(dict_agencies.keys()):
         mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
         cov = est.covariance_approximation()
     
-        xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+        xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors, tickers = est.tickers)
         xpf = xpf.risk_free_stats()
         
         weights_t = xpf.tangent_portfolio()
@@ -139,9 +144,20 @@ for i, agency in enumerate(dict_agencies.keys()):
             if acronym not in sectors_weights:
                 sectors_weights[acronym] = []
             sectors_weights[acronym].append(weight)
+            
+        for weight, ticker in zip(weights_t,xpf.tickers):
+            if ticker not in assets_weights:
+                assets_weights[ticker] = []
+            assets_weights[ticker].append(weight)
     weights_agencies[i] = sectors_weights
+    assets_weights_agencies[i] = assets_weights
     
 #%% 
 for sectors_weights, agency in zip(weights_agencies, dict_agencies.keys()):
     max_length = max([len(sectors_weights[acronym]) for acronym in sectors_weights])
     xpf.plot_sector_evolution(range(max_length), save = True, source = agency, min_weight = 0.01, sectors_weights = sectors_weights, xlabel = "Number of worst ESG stocks excluded")
+
+#%%
+for assets_weights, agency in zip(assets_weights_agencies, dict_agencies.keys()):
+    max_length = max([len(assets_weights[ticker]) for ticker in assets_weights])
+    xpf.plot_asset_evolution(range(max_length), save = True, source = agency, min_weight = 0.01, assets_weights = assets_weights, xlabel = "Number of worst ESG stocks excluded")

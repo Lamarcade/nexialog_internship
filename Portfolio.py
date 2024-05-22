@@ -40,7 +40,7 @@ class Portfolio:
             if self.sectors is not None:
                 self.sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
                 self.sectors.sort_index(inplace = True)
-        
+                
             return self
         
     def change_short_sales(self):
@@ -216,7 +216,7 @@ class Portfolio:
             self.fig, self.ax = plt.subplots(figsize=fig_size)
         self.existing_plot = False
         
-    def make_title_save(self, figtitle, n_risky, savefig = False, score_source = None):
+    def make_title_save(self, figtitle, n_risky, savefig = False, score_source = None, bbox_param = None):
         if score_source is not None:
             title = score_source + figtitle + str(n_risky)
         else:
@@ -227,7 +227,10 @@ class Portfolio:
             title += '_no_short'
     
         if savefig:
-            plt.savefig('Figures/' + title + '.png')    
+            if bbox_param is None:
+                plt.savefig('Figures/' + title + '.png')    
+            else:
+                plt.savefig('Figures/' + title + '.png', bbox_inches = 'tight')  
         
     def plot_frontier(self, rf_included, risks, returns, sharpes = None, marker_size = 1):
         if rf_included:

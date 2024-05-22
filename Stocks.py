@@ -28,12 +28,15 @@ class Stocks:
         # Pivot the DataFrame to have symbols as columns
         self.stocks_pivot = self.stocks.pivot(index='Date', columns='Symbol', values='Adj Close')
         
-    def compute_monthly_returns(self, n_valid = 50, drop_index = None):
+    def compute_monthly_returns(self, n_valid = 50, drop_index = 60):
         # Calculate monthly returns for each symbol
         monthly_returns = self.stocks_pivot.resample('ME').ffill().pct_change()
 
         # Get rid of the first row of NaN
         monthly_returns = monthly_returns.iloc[1:]
+        
+        # After row 60 there are no NaN, which is better for the covariance
+        # 10 years of data are left
         if drop_index is not None:
            monthly_returns = monthly_returns.iloc[drop_index:] 
     
@@ -98,6 +101,10 @@ class Stocks:
 
         if (self.targetESG is not None):
             self.targetESG = self.targetESG[asset_indices.values]
+            
+        if self.tickers is not None:
+            self.tickers = self.tickers[asset_indices.values]
+            
         return(self.sectors, self.targetESG)        
     
     def exclude_assets(self, count = 10, threshold = None, ascending_better = True):
@@ -111,6 +118,8 @@ class Stocks:
         else:
             best_indices = sorted(range(self.n_assets), key=lambda x: self.targetESG[x])[:worst_count]
         best_indices = np.sort(best_indices)
+        if not(self.rf_params):
+            best_indices +=1
 # =============================================================================
 #         self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
 #         
@@ -131,13 +140,15 @@ class Stocks:
     def keep_assets(self, int_indices):
         if not(self.rf_params):
             int_indices = [x - 1 for x in int_indices]
+        
         self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in int_indices]
+
         
         if self.sectors is not None:
             self.sectors = self.sectors.iloc[int_indices]
             self.index = self.sectors.index
             
-        self.n_assets -= (self.n_assets - len(int_indices))
+        self.n_assets = len(int_indices)
         
         if self.tickers is not None:
             self.tickers = self.tickers[int_indices]

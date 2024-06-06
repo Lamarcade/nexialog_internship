@@ -20,7 +20,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -52,7 +52,7 @@ scores_valid = SG_agencies.get_score_df()
 standard_scores = SG_agencies.standardise_df()
 #min_max_scores = SG_agencies.min_max_df()
 
-SG_agencies.plot_distributions(scores_valid, "no_norma")
+#SG_agencies.plot_distributions(scores_valid, "no_norma")
 #SG_agencies.plot_distributions(min_max_scores, "min_max")
 
 agencies_df_list = []
@@ -65,8 +65,8 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
-_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+provider = 'Re'
+_ = st.keep_common_tickers(agencies_df_list[3], sectors_list)
 #_ = st.keep_common_tickers(ESGTV, sectors_list)
 
 stocks_sectors, stocks_ESG = st.select_assets(5)
@@ -84,67 +84,70 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False)
 #tangent_weights = epf.tangent_portfolio()
 #tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
 
-epf = epf.risk_free_stats()
+#epf = epf.risk_free_stats()
 
 
-sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
+#sharpes, ESG_list = epf.efficient_frontier_ESG(min(stocks_ESG), max(stocks_ESG) + 1, interval = 1)
 
-epf.plot_ESG_frontier(sharpes, ESG_list, savefig = True, score_source = provider)
+#epf.plot_ESG_frontier(sharpes, ESG_list, savefig = True, score_source = provider)
 
 #%% Efficient frontier depending on the ESG constraint
 
-risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 1)
+risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
 epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
 epf.plot_constrained_frontier(risks, returns)
 
 save = False
-step = 5
-count, num_iters = 1, 1 + ((int(max(stocks_ESG))) - int(min(stocks_ESG))) // step
+step = 2
+emin, emax = 80, 92
+#count, num_iters = 1, 1 + ((int(max(stocks_ESG))) - int(min(stocks_ESG))) // step
+count, num_iters = 1, 1 + (emax - emin) // step
 
-
-for min_ESG in range(int(min(stocks_ESG)), int(max(stocks_ESG)) + step, step):
+for min_ESG in range(emin, emax, step):
     if not(count % 2):
         print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = int(num_iters)))
-    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [epf.ESG_constraint(min_ESG)])
-    if int(max(stocks_ESG)) - min_ESG < step:
+    risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
+    if min_ESG >= (emax-1-step):
         save = True
     epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider)
     count += 1
 
-#%% Exclude worst ESG stocks from the universe
-
-threshold_list = np.arange(0, 1, 0.05)
-sharpes_t = [[] for i in range(4)]
-# 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-#provider = 'Su'
-
-for i in range(4):
-    for threshold in threshold_list:
-        est = Stocks(path, annual_rf)
-        est.process_data()
-        est.compute_monthly_returns()
-    
-        
-        _ = est.keep_common_tickers(agencies_df_list[i], sectors_list)
-        
-        _, _ = est.select_assets(5)
-        stocks_sectors, stocks_ESG = est.exclude_assets(threshold)
-        
-        est.compute_mean()
-        est.compute_covariance()
-        mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
-        cov = est.covariance_approximation()
-    
-        xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
-        xpf = xpf.risk_free_stats()
-        
-        weights_t = xpf.tangent_portfolio()
-        sharpes_t[i].append(xpf.get_sharpe(weights_t))
-
-xpf.new_figure()
-save = False
-for i, agency in enumerate(dict_agencies.keys()):
-    if i == 3:
-        save = True
-    xpf.plot_sharpe_exclusion(sharpes_t[i], threshold_list, save, agency)    
+# =============================================================================
+# #%% Exclude worst ESG stocks from the universe
+# 
+# threshold_list = np.arange(0, 1, 0.05)
+# sharpes_t = [[] for i in range(4)]
+# # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
+# #provider = 'Su'
+# 
+# for i in range(4):
+#     for threshold in threshold_list:
+#         est = Stocks(path, annual_rf)
+#         est.process_data()
+#         est.compute_monthly_returns()
+#     
+#         
+#         _ = est.keep_common_tickers(agencies_df_list[i], sectors_list)
+#         
+#         _, _ = est.select_assets(5)
+#         stocks_sectors, stocks_ESG = est.exclude_assets(threshold)
+#         
+#         est.compute_mean()
+#         est.compute_covariance()
+#         mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
+#         cov = est.covariance_approximation()
+#     
+#         xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+#         xpf = xpf.risk_free_stats()
+#         
+#         weights_t = xpf.tangent_portfolio()
+#         sharpes_t[i].append(xpf.get_sharpe(weights_t))
+# 
+# xpf.new_figure()
+# save = False
+# for i, agency in enumerate(dict_agencies.keys()):
+#     if i == 3:
+#         save = True
+#     xpf.plot_sharpe_exclusion(sharpes_t[i], threshold_list, save, agency)    
+# =============================================================================

@@ -20,7 +20,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()

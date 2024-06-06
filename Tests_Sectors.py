@@ -19,7 +19,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -59,9 +59,9 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Su'
+provider = 'Re'
 
-_ = st.keep_common_tickers(agencies_df_list[1], sectors_list)
+_ = st.keep_common_tickers(agencies_df_list[3], sectors_list)
 
 #n_assets = 50
 #stocks_ESG = st.restrict_assets(n_assets)

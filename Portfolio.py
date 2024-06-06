@@ -89,6 +89,11 @@ class Portfolio:
     def neg_return(self,weights):
         return - weights.T.dot(self.mu)
     
+    def diversification_ratio(self, weights):
+        # Diversification ratio of the portfolio
+        weighted_vols = weights.dot(np.sqrt(np.diag(self.sigma)))
+        return weighted_vols/ self.get_risk(weights)
+    
     def weight_constraint(self):
         return({'type': 'eq', 'fun': lambda w: sum(w)-1})
     

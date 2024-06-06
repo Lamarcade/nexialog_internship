@@ -20,7 +20,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -81,7 +81,12 @@ epf = epf.risk_free_stats()
 emin, emax = int(min(stocks_ESG)), int(max(stocks_ESG))
 step = 1
 ESG_range = np.arange(emin, emax, 1)
-epf.plot_asset_evolution(ESG_range, save = True)
+
+complete_sectors = sectors_list.copy()
+complete_sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
+complete_sectors.sort_index(inplace = True)
+
+epf.plot_asset_evolution(ESG_range, save = True, sectors_df = complete_sectors, min_weight = 0.0001)
 
 
 #%% Sharpes with exclusion

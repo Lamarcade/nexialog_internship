@@ -21,7 +21,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -177,6 +177,6 @@ for i in range(4):
     weights = weights_agencies[i]
     agency = list(dict_agencies.keys())[i]
     max_length = max([len(weights[acronym]) for acronym in weights])
-    xpf.plot_sector_evolution(range(max_length), save = True, source = agency, min_weight = 0.01, sectors_weights = weights, xlabel = "Number of worst ESG stocks excluded")
+    xpf.plot_sector_evolution(range(max_length), save = True, source = agency, min_weight = 0.0001, sectors_weights = weights, xlabel = "Number of worst ESG stocks excluded")
 
 #

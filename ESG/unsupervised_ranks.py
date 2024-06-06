@@ -21,14 +21,15 @@ plt.close('all')
 
 MS, SU, SP, RE = get_scores()
 MSS, SUS, SPS, RES = reduced_df(MS, SU, SP, RE)
-scores = get_score_df()
-scores_valid, valid_indices = keep_valid()
-std_scores = standardise_df()
+dict_agencies = {'MS': MSS['Score'], 'SU': SUS['Score'], 'SP' : SPS['Score'], 'RE': RES['Score']}
+scores = get_score_df(dict_agencies)
+scores_valid, valid_indices = keep_valid(scores)
+#std_scores = standardise_df(scores_valid)
 scores_ranks = scores_valid.copy()
 scores_ranks = scores_ranks.rank()
 
 # All the agencies
-dict_agencies = {'SU': SUS['Score'], 'SP' : SPS['Score'], 'RE': RES['Score']}
+
 
 #triplet = std_scores[:,1:4]
 
@@ -106,15 +107,14 @@ sns.histplot(data = gaussian_classes, x = 'labels', hue = 'labels', palette = cm
 
 plt.plot()
 s = sns.pairplot(gaussian_classes, hue = 'labels', corner = True)
-plt.savefig("Figures/gmm_classes.png")
+s.fig.suptitle('Classes obtained with a Gaussian Mixture Model', y = 1.03)
+plt.savefig("Figures/gmm_classes.png", bbox_inches = 'tight')
+
 
 plt.plot()
-sns.pairplot(clusters, hue = 'labels', corner = True)
-plt.savefig("Figures/h_clusters.png")
-
-plt.plot()
-sns.pairplot(kclusters, hue = 'labels', corner = True)
-plt.savefig("Figures/k_clusters.png")
+ks = sns.pairplot(kclusters, hue = 'labels', corner = True)
+ks.fig.suptitle('Classes obtained with a K-Means model', y = 1.03)
+plt.savefig("Figures/k_clusters.png", bbox_inches = 'tight')
 
 
 #%% Kendall tau for clusters
@@ -133,7 +133,7 @@ gauss_ranks = gaussian_classes.copy()
 
 # Calculate rank of scores within each label class
 
-def add_mean_rank(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
+def add_mean_rank(df = gauss_ranks, agencies = ['MS','SU','SP','RE'], labels_column = 'labels'):
     for agency in agencies:
         name = 'rank_' + agency
         df[name] = gauss_ranks[agency].rank()
@@ -141,7 +141,7 @@ def add_mean_rank(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column =
         df['mean_'+name] = df[labels_column].map(mr)
     return None
 
-def get_mean_ranks(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
+def get_mean_ranks(df = gauss_ranks, agencies = ['MS','SU','SP','RE'], labels_column = 'labels'):
     rank_df = pd.DataFrame(columns = agencies)
     dfc = df.copy()
     for agency in agencies:
@@ -151,7 +151,7 @@ def get_mean_ranks(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column 
         rank_df['cluster_mean_rank'] = rank_df.mean(axis=1)
     return rank_df
 
-def get_std_ranks(df = gauss_ranks, agencies = ['SU','SP','RE'], labels_column = 'labels'):
+def get_std_ranks(df = gauss_ranks, agencies = ['MS', 'SU','SP','RE'], labels_column = 'labels'):
     rank_df = pd.DataFrame(columns = agencies)
     dfc = df.copy()
     for agency in agencies:

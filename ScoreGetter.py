@@ -153,6 +153,8 @@ class ScoreGetter:
         '23':	'CONS Construction',
         '31-33':	'MANU Manufacturing',
         '41/42':	'WHOL Wholesale Trade',
+        '41':	'WHOL Wholesale Trade',
+        '42':	'WHOL Wholesale Trade',
         '44-45':	'RETA Retail Trade',
         '48-49':	'TRAN Transportation and Warehousing',
         '51':	'INFO Information',
@@ -166,7 +168,9 @@ class ScoreGetter:
         '71':	'ARTS Arts, Entertainment, and Recreation',
         '72':	'ACCO Accommodation and Food Services',
         '81':	'OTHE Other Services (except Public Administration)',
-        '91/92':	'PUBL Public Administration'
+        '91/92':	'PUBL Public Administration',
+        '91':	'PUBL Public Administration',
+        '92':	'PUBL Public Administration',
         }
         if NCAIS:
             RE_sector = self.RE.copy()
@@ -213,10 +217,10 @@ class ScoreGetter:
            return res, ranks 
         return(res)
     
-    def plot_distributions(self, df, dist_type, binwidth = 0.1):
+    def plot_distributions(self, df, dist_type, binwidth = 0.1, n = 4):
         cmap = 'GnBu_d'
         sns.set_theme(style="darkgrid")
-        fig, ax = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
+        fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
 
         for (i, agency) in enumerate(df.columns):
             sns.histplot(data=df, x=agency, hue=agency, palette=cmap,

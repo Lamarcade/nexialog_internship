@@ -21,7 +21,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -33,14 +33,29 @@ sectors_list = SG.valid_sector_df
 #%% Create a target variable
 
 # Cluster technique
-SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 10)
+#SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
 
-SMK = SM.kmeans()
-SMG, taumax = SM.classify_gaussian_mixture()
+#SMK = SM.kmeans()
+#SMG, taumax = SM.classify_gaussian_mixture()
 
 # ESG Target variables
-ESGTV = SM.make_score(SMK, n_classes = 10)
-ESGTV2 = SM.make_score(SMG, n_classes = 10)
+#ESGTV = SM.make_score(SMK, n_classes = 7)
+#ESGTV2 = SM.make_score(SMG, n_classes = 7)
+
+load_SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_SM.load_model('kmeans.pkl')
+k_scores = load_SM.get_predictions()
+ESGTV3 = load_SM.make_score_2(k_scores, n_classes = 7, gaussian = False)
+
+load_GSM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_GSM.load_model('gauss.pkl')
+full_scores = load_GSM.get_predictions()
+ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
+
+std_ESGTV3 = ESGTV3.copy()
+std_ESGTV3['Score'] = (std_ESGTV3['Score']- std_ESGTV3['Score'].mean()) / std_ESGTV3['Score'].std()
+std_ESGTV4 = ESGTV4.copy()
+std_ESGTV4['Score'] = (std_ESGTV4['Score']- std_ESGTV4['Score'].mean()) / std_ESGTV4['Score'].std()
 
 # Worst score approach
 #ESGTV3 = SG.worst_score(scores_ranks, n_classes = 7)
@@ -53,19 +68,22 @@ scores_valid = SG_agencies.get_score_df()
 min_max_scores = SG_agencies.min_max_df()
 standard_scores = SG_agencies.standardise_df()
 
-agencies_df_list = []
+agencies_df_list = [std_ESGTV3, std_ESGTV4]
+#agencies_df_list = []
 for agency in scores_ranks.columns:
     agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': standard_scores[agency]}))
+    #agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_ranks[agency]}))
     
 #%% Get the stock data and keep the companies in common with the target variable
 
-def Sharpe_analysis(df_list, dict_agencies, low_ESG = 0, up_ESG = 1.05, step = 0.05):
+def Sharpe_analysis(df_list, list_agencies, low_ESG = 0, up_ESG = 1.05, step = 0.01):
     
     save = False
     spearmans = {}
     reduced_df = pd.DataFrame()
     # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-    for i, agency in enumerate(dict_agencies.keys()):
+    for i, agency in enumerate(list_agencies):
+        print(i)
         #provider = 'Su'
         st = Stocks(path, annual_rf)
         st.process_data()
@@ -94,20 +112,20 @@ def Sharpe_analysis(df_list, dict_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
         epf.set_ESGs(stocks_ESG)
         
         emin, emax = min(stocks_ESG), max(stocks_ESG)
-        sharpes, ESG_list = epf.efficient_frontier_ESG(emin, emax, interval = 0.1)
+        sharpes, ESG_list = epf.efficient_frontier_ESG(emin, emax, interval = step)
         spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
         if agency == 'RE':
             save = True
-        epf.plot_sharpe_speed(sharpes, ESG_list, save = save, source = agency)
+        epf.plot_sharpe(sharpes, ESG_list, save = save, source = agency)
 
     return spearmans, epf, reduced_df
         
 step = 0.05
 low_ESG, up_ESG = 0, 1.05
 ESG_range = np.arange(low_ESG,up_ESG, step)
-spearmans, epf, reduced_df = Sharpe_analysis(agencies_df_list, dict_agencies)
+spearmans, epf, reduced_df = Sharpe_analysis(agencies_df_list, ['Kmeans', 'GMM', 'MS', 'SU', 'SP', 'RE'], low_ESG, up_ESG, step)
 
-SG_agencies.plot_distributions(reduced_df, "normalized 62")
+#SG_agencies.plot_distributions(reduced_df, "normalized 62")
 #%% 
 #epf.plot_sector_evolution(ESG_range, save = True, source = "Refinitiv")
 #epf.plot_sector_evolution(np.arange(0.7, 0.95, 0.05), save = True, source = "Refinitiv")

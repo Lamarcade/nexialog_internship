@@ -20,7 +20,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -80,51 +80,58 @@ n_assets = st.n_assets
 
 epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = sectors_list.loc[st.index.values])
 
-#epf = epf.risk_free_stats()
-
-#%% Sector weights for the tangent portfolio
-
-#epf.plot_tangent(tangent_risk, tangent_return)
-
-save = False
-step = 1
-count, num_iters = 1, 1 + (int(max(stocks_ESG)) - int(min(stocks_ESG))) // step
-
-ESG_range = range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, step)
-
-epf.new_figure()
-
-for min_ESG in ESG_range:
-    if not(count % 2):
-        print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
-    tangent_weights = epf.optimal_portfolio_ESG(min_ESG)
-    tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
-    epf.set_sectors_composition(tangent_weights)
-    if int(max(stocks_ESG)) - min_ESG < step:
-        save = True
-    epf.plot_sectors_composition(min_ESG, save, provider)
-    count += 1
-    
+epf = epf.risk_free_stats()
+# =============================================================================
+# 
+# #%% Sector weights for the tangent portfolio
+# 
+# #epf.plot_tangent(tangent_risk, tangent_return)
+# 
+# save = False
+# step = 1
+# count, num_iters = 1, 1 + (int(max(stocks_ESG)) - int(min(stocks_ESG))) // step
+# 
+# ESG_range = range(int(min(stocks_ESG)),int(max(stocks_ESG)) + 1, step)
+# 
+# epf.new_figure()
+# 
+# for min_ESG in ESG_range:
+#     if not(count % 2):
+#         print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
+#     tangent_weights = epf.optimal_portfolio_ESG(min_ESG)
+#     tangent_risk, tangent_return = epf.get_risk(tangent_weights), epf.get_return(tangent_weights)
+#     epf.set_sectors_composition(tangent_weights)
+#     if int(max(stocks_ESG)) - min_ESG < step:
+#         save = True
+#     epf.plot_sectors_composition(min_ESG, save, provider)
+#     count += 1
+#     
+# =============================================================================
 #%% Sector weights evolution depending on the ESG constraint
 
-epf.plot_composition_change(0, int(max(stocks_ESG)), True, provider)
+#epf.plot_composition_change(0, int(max(stocks_ESG)), True, provider)
 
 #%% Efficient frontier with ESG and sector constraints
 
 spf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+spf.risk_free_stats()
 
-risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 1)
+risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 2)
 spf.new_figure()
 spf.plot_constrained_frontier(risks, returns)
 
-threshold = 5
-risks_esg, returns_esg, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.ESG_constraint(threshold)])
+threshold = 82
+min_sector = 0.03
+print('Constrained frontier for ESG constraint')
+risks_esg, returns_esg, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(threshold)])
 
 n_sectors = stocks_sectors['Sector'].nunique()
-risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.sector_constraint(0.01*np.ones(n_sectors))])
+print('Constrained frontier for sectors constraint')
+risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.sector_constraint(min_sector*np.ones(n_sectors))])
 
-risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 1, new_constraints = [spf.ESG_constraint(threshold), spf.sector_constraint(0.01*np.ones(n_sectors))])
+print('Constrained frontier for both constraints')
+risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(threshold), spf.sector_constraint(min_sector*np.ones(n_sectors))])
 
 spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = threshold)
-spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = 0.01)
-spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = threshold, sector_min = 0.01, savefig = True, title = '_ESGSector_', score_source = provider)
+spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = min_sector)
+spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = threshold, sector_min = min_sector, savefig = True, title = '_ESGSector82_', score_source = provider)

@@ -11,6 +11,7 @@ import numpy as np
 from scipy.stats import kendalltau
 from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.mixture import GaussianMixture
+import pickle
 
 #%%
 
@@ -40,7 +41,9 @@ class ScoreMaker:
     def kmeans(self):
         km = KMeans(n_clusters = self.n_classes)
             
-        labels = pd.DataFrame(km.fit_predict(self.ranks), index = self.valid_indices)    
+        labels = pd.DataFrame(km.fit_predict(self.ranks), index = self.valid_indices)  
+        
+        self.model = km
         return(self.add_class(labels))
 
     def classify_gaussian_mixture(self, class_proportions = None, n_mix = 50):
@@ -65,17 +68,59 @@ class ScoreMaker:
             tau = 0
             for agency in self.dict_agencies:
                 #tau += kendalltau(self.dict_agencies[agency][self.valid_tickers], mix_labels, variant = 'c').statistic / len(dict_agencies)
-                tau += -kendalltau(self.ranks[agency], mix_labels, variant = 'c').statistic
+                tau += kendalltau(self.ranks[agency], mix_labels, variant = 'c').statistic / len(self.dict_agencies)
 
             if tau >= taumax:
+                print(tau)
                 taumax = tau
                 best_index = i
 
         mixture_labels = pd.DataFrame(mixtures[best_index].predict(self.ranks), index = self.valid_indices)
         
+        self.model = mixtures[best_index]
+        
         full_scores = self.add_class(mixture_labels)
         return full_scores, taumax
     
+    def gmm_1d(self, class_proportions = None, n_mix = 50):
+        if not(class_proportions is None):
+            # Calculate weights for each cluster based on class proportions
+            weights = np.array(list(class_proportions.values()))
+            
+            # Ensure weights are normalized according to scikit
+            weights[-1] = 1-sum(weights[:-1])
+        else:
+            weights = None
+            
+        mixtures = []
+        taumax = -1
+        best_index = 0
+        
+        for i in range(n_mix): 
+            mixtures.append(GaussianMixture(n_components = self.n_classes, weights_init = weights))
+            
+            mix_labels = mixtures[i].fit_predict(self.ranks)
+        
+
+            tau = kendalltau(self.ranks, mix_labels, variant = 'c').statistic
+
+            if tau >= taumax:
+                print(tau)
+                taumax = tau
+                best_index = i
+
+        mixture_labels = pd.DataFrame(mixtures[best_index].predict(self.ranks), index = self.valid_indices)
+        
+        self.model = mixtures[best_index]
+        
+        full_scores = self.add_class(mixture_labels)
+        return full_scores, taumax
+    
+    def get_predictions(self):
+        labels = pd.DataFrame(self.model.predict(self.ranks), index = self.valid_indices)
+        full_scores = self.add_class(labels)
+        return(full_scores)
+
     def make_score(self, full_scores, n_classes = 7):
         
         mean_ranks = full_scores.groupby('labels').mean()
@@ -84,12 +129,15 @@ class ScoreMaker:
         
         sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
         
+        self.sorted_labels = sorted_labels
         # Create a mapping dictionary from original labels to sorted labels
-        # A low value means a poor ESG score
-        label_mapping = {label: n_classes-rank for rank, label in enumerate(sorted_labels, start=1)}
+        # Does a low value means a poor ESG score
+        #label_mapping = {label: n_classes-rank for rank, label in enumerate(sorted_labels, start=1)}
+        label_mapping = {label: rank for rank, label in enumerate(sorted_labels)}
 
         # Map the labels in the original DataFrame according to the sorted order
         full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
+        
         
         rank_stats = pd.DataFrame({'labels': global_mean_ranks.index, 'mean': global_mean_ranks.values})
         rank_stats['labels'].map(label_mapping)
@@ -102,6 +150,54 @@ class ScoreMaker:
 
         ESGTV.dropna(inplace = True)
         return ESGTV
+    
+    def make_score_2(self, full_scores, n_classes = 7, gaussian = True):
+        
+        mean_ranks = full_scores.groupby('labels').mean()
+        global_mean_ranks = mean_ranks.mean(axis = 1)
+        global_mean_ranks = global_mean_ranks.sort_values()
+        
+        sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
+        
+        self.sorted_labels = sorted_labels
+        # Create a mapping dictionary from original labels to sorted labels
+        # Does a low value means a poor ESG score
+        #label_mapping = {label: n_classes-rank for rank, label in enumerate(sorted_labels, start=1)}
+        label_mapping = {label: rank for rank, label in enumerate(sorted_labels)}
+
+        # Map the labels in the original DataFrame according to the sorted order
+        full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
+        
+        rank_stats = pd.DataFrame({'labels': global_mean_ranks.index, 'mean': global_mean_ranks.values})
+        rank_stats['labels'].map(label_mapping)
+        rank_stats['mean_std'] = full_scores.groupby('sorted_labels').std().mean(axis=1)
+        rank_stats['std_mean_rank'] = full_scores.groupby('sorted_labels').mean().std(axis = 1)
+        
+        if gaussian:
+            covs = self.model.covariances_
+            a = np.ones(4)/4
+            clusters_std = []
+            for k in self.sorted_labels:
+                clusters_std.append(np.sqrt(a.T.dot(covs[k]).dot(a)))
+            rank_stats['cluster_std'] = clusters_std
+
+        self.full_ranks = full_scores
+        self.rank_stats = rank_stats
+
+        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': full_scores['sorted_labels']})
+
+        ESGTV.dropna(inplace = True)
+        return ESGTV
+    
+    def save_model(self,filename = 'model.pkl'):
+        with open(filename,'wb') as f:
+            pickle.dump(self.model,f)
+
+
+    def load_model(self,filename = 'model.pkl'):
+        with open(filename, 'rb') as f:
+           model = pickle.load(f)
+           self.model = model
     
     def get_mean_ranks(self, labels_column = 'sorted_labels'):
         agencies = self.full_ranks.columns[:4]
@@ -119,7 +215,7 @@ class ScoreMaker:
         dfc = self.full_ranks.copy()
         for agency in agencies:
             mr = dfc[[agency, labels_column]].groupby(labels_column).std().to_dict()
-            rank_df[agency] = mr
+            rank_df[agency] = mr[agency]
             rank_df['cluster_std_rank'] = rank_df.mean(axis=1)
         return rank_df
     

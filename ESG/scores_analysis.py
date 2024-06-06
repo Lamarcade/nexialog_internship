@@ -10,7 +10,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import venn
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr, kendalltau
 
 from scores_utils import *
 
@@ -96,26 +96,30 @@ def sector_analysis(df, sector_col, make_acronym=False, sector_map=None):
 
 
 NCAIS_map = {
-'11':	'Agriculture, Forestry, Fishing and Hunting',
-'21':	'Mining, Quarrying, and Oil and Gas Extraction',
-'22':	'Utilities',
-'23':	'Construction',
-'31-33':	'Manufacturing',
-'41/42':	'Wholesale Trade',
-'44-45':	'Retail Trade',
-'48-49':	'Transportation and Warehousing',
-'51':	'Information',
-'52':	'Finance and Insurance',
-'53':	'Real Estate and Rental and Leasing',
-'54':	'Professional, Scientific, and Technical Services',
-'55':	'Management of Companies and Enterprises',
-'56':	'Admini. & Support & Waste Management & Remediation Services',
-'61':	'Educational Services',
-'62':	'Health Care and Social Assistance',
-'71':	'Arts, Entertainment, and Recreation',
-'72':	'Accommodation and Food Services',
-'81':	'Other Services (except Public Administration)',
-'91/92':	'Public Administration'
+'11':	'AGRI Agriculture, Forestry, Fishing and Hunting',
+'21':	'MINI Mining, Quarrying, and Oil and Gas Extraction',
+'22':	'UTIL Utilities',
+'23':	'CONS Construction',
+'31-33':	'MANU Manufacturing',
+'41/42':	'WHOL Wholesale Trade',
+'41':	'WHOL Wholesale Trade',
+'42':	'WHOL Wholesale Trade',
+'44-45':	'RETA Retail Trade',
+'48-49':	'TRAN Transportation and Warehousing',
+'51':	'INFO Information',
+'52':	'FINA Finance and Insurance',
+'53':	'REAL Real Estate and Rental and Leasing',
+'54':	'PROF Professional, Scientific, and Technical Services',
+'55':	'MANA Management of Companies and Enterprises',
+'56':	'ADMI Admini. & Support & Waste Management & Remediation Services',
+'61':	'EDUC Educational Services',
+'62':	'HEAL Health Care and Social Assistance',
+'71':	'ARTS Arts, Entertainment, and Recreation',
+'72':	'ACCO Accommodation and Food Services',
+'81':	'OTHE Other Services (except Public Administration)',
+'91/92':	'PUBL Public Administration',
+'91':	'PUBL Public Administration',
+'92':	'PUBL Public Administration',
 }
 
 SP_sectors = sector_analysis(SPH, 'Industry', make_acronym=True)
@@ -355,3 +359,42 @@ for i in range(n_agencies):
             spearmans_conv.append((ag1,ag2,spear))            
 
 
+#%% Kendall-tau
+kdf = scores_num.copy()
+kdf = kdf[~(kdf.isna().any(axis=1))]
+
+kts = []
+for i in range(n_agencies):
+    for j in range(n_agencies):
+        if j > i:
+            ag1, ag2 = agencies_order[i], agencies_order[j]
+            kt = kendalltau(scores_valid[ag1], scores_valid[ag2]).statistic
+            kts.append((ag1,ag2,kt))
+            
+kts_conv = []
+for i in range(n_agencies):
+    for j in range(n_agencies):
+        if j > i:
+            ag1, ag2 = agencies_order[i], agencies_order[j]
+            kt = kendalltau(df[ag1], df[ag2]).statistic
+            kts_conv.append((ag1,ag2,kt))   
+
+#%%
+correls = np.zeros((4,4))
+
+agency_order = ['MS', 'SU', 'SP', 'RE']
+names = ['MSCI', 'Sust.', 'S&P', 'Refi.']
+for i in range(4):
+    correls[i][i] = 1
+    for j in range(4):
+        if i!= j:
+            correls[i][j], _ = kendalltau(kdf[agency_order[i]],kdf[agency_order[j]], variant = 'b')
+
+mask = np.triu(np.ones_like(correls, dtype=bool))
+
+plt.figure()
+sns.reset_defaults()
+sns.heatmap(correls, annot = True, mask = mask, xticklabels=names, yticklabels = names, fmt = ".2f", cmap = 'viridis')
+
+plt.title('Rank correlation of ESG scores for companies in the S&P 500 \n after converting according to the MSCI quantiles')
+plt.savefig('Figures/quant_correlations.png')    

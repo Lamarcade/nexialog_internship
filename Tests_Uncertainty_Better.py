@@ -57,8 +57,9 @@ range_number = range(len(ESGTV3))
 # =============================================================================
 esg_df = pd.DataFrame({'Tag': valid_tickers, 'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
 
-dist_df = pd.DataFrame({'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
-SG.plot_distributions(dist_df, dist_type = 'policies', n = 3)
+#dist_df = pd.DataFrame({'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
+dist_df = pd.DataFrame({'Pire': ESGTV3['Score'], 'Meilleur': ESGTV4['Score'], 'Moyen': ESGTV5['Score']})
+SG.plot_distributions(dist_df, dist_type = 'harmonisés', n = 3, eng = False)
  
 #%% Sharpes with exclusion
 sharpes_t = []
@@ -150,10 +151,10 @@ for count in count_list:
 
 save = True
 xpf.new_figure()
-xpf.plot_sharpe_exclusion(sharpes_t, range(len(sharpes_t)), save, "Average") 
+xpf.plot_sharpe_exclusion(sharpes_t, range(len(sharpes_t)), save, "Score moyen", eng = False) 
     
 #%%
 save = True
 xpf.new_figure()
 
-xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save) 
+xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save, eng = False) 

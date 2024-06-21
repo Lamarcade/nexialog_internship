@@ -74,7 +74,7 @@ cov = st.covariance_approximation()
 
 n_assets = st.n_assets
 
-#st.plot_sectors()
+st.plot_sectors(eng = False)
 
 #%% Build a portfolio with restrictions on the minimal ESG score
 
@@ -114,11 +114,11 @@ epf = epf.risk_free_stats()
 #%% Efficient frontier with ESG and sector constraints
 
 spf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
-spf.risk_free_stats()
+#spf.risk_free_stats()
 
 risks, returns, _ = spf.efficient_frontier(max_std = 0.10, method = 2)
 spf.new_figure()
-spf.plot_constrained_frontier(risks, returns)
+spf.plot_constrained_frontier(risks, returns, eng = False)
 
 threshold = 82
 min_sector = 0.03
@@ -132,6 +132,6 @@ risks_sectors, returns_sectors, _ = spf.efficient_frontier(max_std = 0.10, metho
 print('Constrained frontier for both constraints')
 risks_all, returns_all, _ = spf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [spf.ESG_constraint(threshold), spf.sector_constraint(min_sector*np.ones(n_sectors))])
 
-spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = threshold)
-spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = min_sector)
-spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = threshold, sector_min = min_sector, savefig = True, title = '_ESGSector82_', score_source = provider)
+spf.plot_constrained_frontier(risks_esg, returns_esg, ESG_min_level = threshold, eng = False)
+spf.plot_constrained_frontier(risks_sectors, returns_sectors, sector_min = min_sector, eng = False)
+spf.plot_constrained_frontier(risks_all, returns_all, ESG_min_level = threshold, sector_min = min_sector, savefig = True, title = '_ESGSector82_', score_source = provider, eng = False)

@@ -51,24 +51,6 @@ ESGTV = SM.make_score_2(SMK, n_classes = 7, gaussian = False)
 ESGTV2 = GSM.make_score_2(SMG, n_classes = 7, gaussian = True)
 
 
-
-#%% Plot classes
-
-cmap = 'GnBu_d'
-sns.set_theme(style="darkgrid")
-plt.figure()
-sns.histplot(data = SM.full_ranks, x = 'sorted_labels', hue = 'sorted_labels', palette = cmap, legend = False)
-
-plt.figure()
-s = sns.pairplot(SM.full_ranks[['MS', 'SU','SP','RE','sorted_labels']], hue = 'sorted_labels', corner = True)
-s.fig.suptitle('Classes obtained with a Gaussian Mixture Model', y = 1.03)
-#plt.savefig("Figures/gmm_classes.png", bbox_inches = 'tight')
-
-plt.figure()
-ks = sns.pairplot(GSM.full_ranks[['MS', 'SU','SP','RE','sorted_labels']], hue = 'sorted_labels', corner = True)
-ks.fig.suptitle('Classes obtained with a K-Means model', y = 1.03)
-#plt.savefig("Figures/k_clusters.png", bbox_inches = 'tight')
-
 # =============================================================================
 # #%% Plot 3D
 # agencies = ['MS', 'SU', 'SP', 'RE']
@@ -228,6 +210,27 @@ for agency in dict_agencies:
     tauLC += kendalltau(scores_ranks[agency][valid_indices], load_SM.full_ranks['sorted_labels'], variant = 'c').statistic / len(dict_agencies)
 
     tauLG += kendalltau(scores_ranks[agency], load_GSM.full_ranks['sorted_labels'], variant = 'c').statistic / len(dict_agencies)
+    
+#%% Plot classes
+
+cmap = 'GnBu_d'
+sns.set_theme(style="darkgrid")
+plt.figure()
+sns.histplot(data = load_SM.full_ranks, x = 'sorted_labels', hue = 'sorted_labels', palette = cmap, legend = False)
+
+plt.figure()
+s = sns.pairplot(load_SM.full_ranks[['MS', 'SU','SP','RE','sorted_labels']], hue = 'sorted_labels', corner = True)
+#s.fig.suptitle('Classes obtained with a Gaussian Mixture Model', y = 1.03)
+s.fig.suptitle('Classes obtenues avec un GMM', y = 1.03)
+s._legend.set_title('Numéro du cluster')
+plt.savefig("Figures/gmm_classes.png", bbox_inches = 'tight')
+
+plt.figure()
+ks = sns.pairplot(load_GSM.full_ranks[['MS', 'SU','SP','RE','sorted_labels']], hue = 'sorted_labels', corner = True)
+#ks.fig.suptitle('Classes obtained with a K-Means model', y = 1.03)
+ks.fig.suptitle('Classes obtenues avec un modèle K-Means', y = 1.03)
+ks._legend.set_title('Numéro du cluster')
+plt.savefig("Figures/k_clusters.png", bbox_inches = 'tight')
 
 #%% Average rank
 avg_rank = pd.DataFrame({'AVG':scores_ranks.mean(axis = 1)})

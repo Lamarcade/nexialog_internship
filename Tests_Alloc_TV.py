@@ -149,7 +149,7 @@ xpf.new_figure()
 for i, method in enumerate(esg_df.columns[1:]):
     if i == 1:
         save = True
-    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, method) 
+    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, method, eng = False) 
     
 #%%
 save = False
@@ -157,4 +157,4 @@ xpf.new_figure()
 for i, method in enumerate(esg_df.columns[1:]):
     if i == 1:
         save = True
-    xpf.plot_esg_exclusion(ESGs[i], range(len(ESGs[i])), save, method) 
+    xpf.plot_esg_exclusion(ESGs[i], range(len(ESGs[i])), save, method, eng = False) 

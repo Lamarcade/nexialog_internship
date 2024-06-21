@@ -130,14 +130,14 @@ def Sharpe_analysis(df_list, list_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
         spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
         if agency == 'RE':
             save = True
-        epf.plot_sharpe(sharpes, ESG_list, save = save, source = agency)
+        epf.plot_sharpe(sharpes, ESG_list, save = save, source = agency, eng = False)
 
     return spearmans, epf, reduced_df
         
 step = 0.05
 low_ESG, up_ESG = 0, 1.05
 ESG_range = np.arange(low_ESG,up_ESG, step)
-spearmans, epf, reduced_df = Sharpe_analysis(agencies_df_list, ['Kmeans', 'GMM', 'Worst', 'Best', 'Average', 'MS', 'SU', 'SP', 'RE'], low_ESG, up_ESG, step)
+spearmans, epf, reduced_df = Sharpe_analysis(agencies_df_list, ['Kmeans', 'GMM', 'Pire', 'Meilleur', 'Moyen', 'MS', 'SU', 'SP', 'RE'], low_ESG, up_ESG, step)
 
 #SG_agencies.plot_distributions(reduced_df, "normalized 62")
 #%% 

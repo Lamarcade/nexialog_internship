@@ -95,7 +95,7 @@ for min_ESG in range(emin, emax, step):
     risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
     if min_ESG >= (emax-1-step):
         save = True
-    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider)
+    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider, eng = False)
     count += 1
 
 #%% Sector evolution
@@ -123,9 +123,9 @@ for i,agency in enumerate(scores_ranks.columns):
     #epf.plot_asset_evolution(range(emin, emax, step), stocks_sectors, save = True, source = 'Refinitiv', min_weight = 0.001, assets_weights = None, xlabel = "ESG rank constraint")
     
     assets_weights = epf.get_evolution(ESG_range)
-    epf.plot_asset_evolution(range(emin, emax, step), stocks_sectors, save = True, source = agency, min_weight = 0.001, assets_weights = assets_weights, xlabel = "ESG rank constraint")
+    epf.plot_asset_evolution(range(emin, emax, step), stocks_sectors, save = True, source = agency, min_weight = 0.001, assets_weights = assets_weights, xlabel = "Contrainte de rang ESG", eng = False)
     
     sectors_weights = epf.sectors_evolution_from_tickers(assets_weights, stocks_sectors)
     
-    epf.plot_sector_evolution(ESG_range, save = True, source = agency, min_weight = 0.001, sectors_weights = sectors_weights, xlabel = "ESG rank constraint")
+    epf.plot_sector_evolution(ESG_range, save = True, source = agency, min_weight = 0.001, sectors_weights = sectors_weights, xlabel = "Contrainte de rang ESG", eng = False)
 

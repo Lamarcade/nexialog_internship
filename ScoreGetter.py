@@ -216,8 +216,9 @@ class ScoreGetter:
         if get_all:
            return res, ranks 
         return(res)
+
     
-    def plot_distributions(self, df, dist_type, binwidth = 0.1, n = 4):
+    def plot_distributions(self, df, dist_type, binwidth = 0.1, n = 4, eng = True):
         cmap = 'GnBu_d'
         sns.set_theme(style="darkgrid")
         fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
@@ -225,6 +226,10 @@ class ScoreGetter:
         for (i, agency) in enumerate(df.columns):
             sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
                          ax=ax[i], multiple='stack', binwidth = binwidth, legend=False)
-            ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
+            if eng:
+                ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
+            else:
+                ax[i].set_title("Distribution des scores " + dist_type + ', ' + str(agency) + ' score')
+                ax[i].set_ylabel('Compte')
 
         plt.savefig("Figures/" + dist_type + "_distributions.png")

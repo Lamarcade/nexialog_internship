@@ -212,10 +212,16 @@ class Stocks:
 
         return sorted_df
     
-    def plot_sectors(self):
+    def plot_sectors(self, eng = True):
         plt.figure(figsize = (8,12))
         ordered_sectors = self.sector_analysis(make_acronym = True)
         sns.histplot(data=ordered_sectors, y='Acronym', hue='Acronym', legend=False)
-        plt.title('Number of companies in each sector according to Refinitiv,' + str(self.n_assets) + ' assets')
+        if eng:
+            plt.title('Number of companies in each sector according to Refinitiv,' + str(self.n_assets) + ' assets')
+        else:
+            plt.title("Nombre d'entreprises dans chaque secteur selon Refinitiv," + str(self.n_assets) + " actifs")
+            plt.xlabel('Compte')
+            plt.ylabel('Secteur')
         figtitle = 'Figures/Sectors_' + str(self.n_assets) + '.png'
+
         plt.savefig(figtitle, bbox_inches = 'tight')

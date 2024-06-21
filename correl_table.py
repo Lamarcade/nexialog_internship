@@ -35,7 +35,7 @@ mask = np.triu(np.ones_like(correls, dtype=bool))
 
 plt.figure()
 sns.heatmap(correls, annot = True, mask = mask, xticklabels=names, yticklabels = names, fmt = ".2f", cmap = 'viridis')
-fr = False
+fr = True
 if fr:
     plt.title('Corrélation de rang des scores ESG \n pour les entreprises du S&P 500')
     plt.savefig('Figures/correlations_fr.png')

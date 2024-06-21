@@ -165,7 +165,7 @@ for assets_weights, method in zip(assets_weights_agencies, esg_df.columns[1:]):
     complete_weights = xpf.complete_weights_lists(assets_weights)
 
     
-    xpf.plot_asset_evolution(range(max_length), complete_sectors, save = True, source = method, min_weight = 0.0001, assets_weights = complete_weights, xlabel = "Number of worst ESG stocks excluded")
+    xpf.plot_asset_evolution(range(max_length), complete_sectors, save = True, source = method, min_weight = 0.0001, assets_weights = complete_weights, xlabel = "Nombre d'actifs exclus", eng = False)
     #xpf.plot_asset_evolution(range(max_length), complete_sectors, save = True, source = agency, min_weight = 0.0001, assets_weights = assets_weights, xlabel = "Number of worst ESG stocks excluded")
 
     sectors_weights = xpf.sectors_evolution_from_tickers(assets_weights, complete_sectors)
@@ -176,6 +176,6 @@ for assets_weights, method in zip(assets_weights_agencies, esg_df.columns[1:]):
 for i, method in enumerate(esg_df.columns[1:]):
     weights = weights_agencies[i]
     max_length = max([len(weights[acronym]) for acronym in weights])
-    xpf.plot_sector_evolution(range(max_length), save = True, source = method, min_weight = 0.001, sectors_weights = weights, xlabel = "Number of worst ESG stocks excluded")
+    xpf.plot_sector_evolution(range(max_length), save = True, source = method, min_weight = 0.001, sectors_weights = weights, xlabel = "Nombre d'actifs exclus", eng = False)
 
 #

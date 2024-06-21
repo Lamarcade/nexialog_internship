@@ -39,16 +39,21 @@ MSR, SUR, SPR, RER = reduced_mixed_df(MS, SU, SP, RE)
 base_dic = {'MS':  MSR['Score'], 'SU': SUR['Score'], 'SP': SPR['Score'],
     'RE': RER['Score']}
 
+sorter = ["AAA","AA","A","BBB","BB","B","CCC", np.nan]
+
 base_scores = get_score_df(base_dic)
+sorted_base_scores = base_scores.sort_values(by="MS", key=lambda column: column.map(lambda e: sorter.index(e)), inplace=False)
 
 cmap = 'GnBu_d'
 sns.set_theme(style="darkgrid")
 fig, ax = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
 
 for (i, agency) in enumerate(base_scores.columns):
-    sns.histplot(data=base_scores, x=agency, hue=agency, palette=cmap,
+    sns.histplot(data=sorted_base_scores, x=agency, hue=agency, palette=cmap,
                  ax=ax[i], multiple='stack', legend=False)
-    ax[i].set_title(str(agency) + ' scores distribution')
+    #ax[i].set_title(str(agency) + ' scores distribution')
+    ax[i].set_title('Distribution des scores de ' + str(agency))
+    ax[i].set_ylabel('Compte')
 
 plt.savefig("Figures/base_distributions.png")
 
@@ -129,23 +134,25 @@ RE_sectors = sector_analysis(
 plt.figure()
 sns.histplot(data=SP_sectors, y='Acronym', hue='Industry', legend=False)
 plt.title("Number of companies in each sector for S&P data")
-plt.savefig("Figures/sectors_count.png")
+#plt.savefig("Figures/sectors_count.png")
 
 plt.figure()
 sns.boxplot(data=SP_sectors, y="Acronym", x='Score',
             hue='Industry', palette=cmap, legend=False)
 plt.title("Scores in each sector for S&P data")
-plt.savefig("Figures/sectors_scores.png")
+#plt.savefig("Figures/sectors_scores.png")
 
 plt.figure()
 sns.histplot(data=RE_sectors, y='Sector_B', hue='Sector_B', legend=False)
-plt.title("Number of companies in each sector for Refinitiv data")
+#plt.title("Number of companies in each sector for Refinitiv data")
+plt.title("Nombre d'entreprises dans chaque secteur, Refinitiv")
 plt.savefig("Figures/RE_sectors.png", bbox_inches="tight")
 
 plt.figure()
 sns.boxplot(data=RE_sectors, y="Sector_B", x='Score',
             hue='Sector_B', palette=cmap, legend=False)
-plt.title("Scores in each sector for Refinitiv data")
+#plt.title("Scores in each sector for Refinitiv data")
+plt.title("Scores dans chaque secteur, Refinitiv")
 plt.savefig("Figures/RE_sectors_scores.png", bbox_inches="tight")
 
 #%% Gini sector means
@@ -218,7 +225,8 @@ full_labels = {'0001': len(valid_locs[2]),  # SP
 
 plt.figure()
 figv, axv = venn.venn4(full_labels, names=['MS', 'RE', 'SU', 'SP'])
-plt.title('Common valid values between agencies')
+#plt.title('Common valid values between agencies')
+plt.title("Scores valides par agence et entre agences")
 plt.savefig("Figures/valid_values.png")
 
 # %% Scale harmonizing
@@ -277,12 +285,42 @@ scores_ha = get_score_df(harmonized_dict)
 # %% Plot new distributions
 figd, axd = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
 
+scores_hanum = scores_ha.loc[valid_indices].copy()
+MS_order = {'AAA': 6, 'AA': 5, 'A': 4, 'BBB': 3, 'BB': 2, 'B': 1, 'CCC': 0}
+
 for (i, agency) in enumerate(scores_ha.columns):
     sns.histplot(data=scores_ha, x=agency, hue=agency, palette=cmap,
                  ax=axd[i], multiple='stack', legend=False)
-    axd[i].set_title(str(agency) + ' scores distribution')
 
-plt.savefig("Figures/new_distributions.png")
+    axd[i].set_title("Distribution des scores de " + str(agency))
+    axd[i].set_ylabel('Compte')
+    scores_hanum[agency] = scores_hanum[agency].map(MS_order).astype('int')
+
+plt.savefig("Figures/quant_distributions.png")
+
+best_scores = scores_hanum.max(axis = 1)
+worst_scores = scores_hanum.min(axis = 1)
+mean_scores = round(scores_hanum.mean(axis = 1)).astype(int)
+        
+quant_df = pd.DataFrame({'Pire': worst_scores, 'Meilleur': best_scores, 'Moyen': mean_scores})
+
+def plot_distributions(df, dist_type, binwidth = 0.1, n = 4, eng = True):
+    cmap = 'GnBu_d'
+    sns.set_theme(style="darkgrid")
+    fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
+
+    for (i, agency) in enumerate(df.columns):
+        sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
+                     ax=ax[i], multiple='stack', binwidth = binwidth, legend=False)
+        if eng:
+            ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
+        else:
+            ax[i].set_title("Distribution des scores " + dist_type + ', ' + str(agency) + ' score')
+            ax[i].set_ylabel('Compte')
+
+    plt.savefig("Figures/" + dist_type + "_distributions.png")
+    
+plot_distributions(quant_df, "harmonisés selon quantiles MSCI", n=3, eng = False)
 
 # %% Class Analysis
 
@@ -309,8 +347,8 @@ for i in range(n_agencies):
             dict_axes[str(i)+str(j)].set_xlabel(agencies_order[i])
             dict_axes[str(i)+str(j)].set_ylabel(agencies_order[j])
 
-mfig.suptitle('Confusion matrices between the agencies')
-
+#mfig.suptitle('Confusion matrices between the agencies')
+mfig.suptitle('Matrices de confusion entre les agences')
 plt.savefig("Figures/confusions.png")
 
 # %% Krippendorff
@@ -396,5 +434,6 @@ plt.figure()
 sns.reset_defaults()
 sns.heatmap(correls, annot = True, mask = mask, xticklabels=names, yticklabels = names, fmt = ".2f", cmap = 'viridis')
 
-plt.title('Rank correlation of ESG scores for companies in the S&P 500 \n after converting according to the MSCI quantiles')
+plt.title('Corrélation de rang des scores ESG 2023 du S&P 500 \n après conversion selon les quantiles MSCI')
+#plt.title('Rank correlation of ESG scores for companies in the S&P 500 \n after converting according to the MSCI quantiles')
 plt.savefig('Figures/quant_correlations.png')    

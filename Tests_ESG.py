@@ -96,7 +96,7 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False)
 risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
 epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
-epf.plot_constrained_frontier(risks, returns)
+epf.plot_constrained_frontier(risks, returns, eng = False)
 
 save = False
 step = 2
@@ -110,7 +110,7 @@ for min_ESG in range(emin, emax, step):
     risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
     if min_ESG >= (emax-1-step):
         save = True
-    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider)
+    epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider, eng = False)
     count += 1
 
 # =============================================================================

@@ -199,20 +199,16 @@ class ScoreMaker:
 
         index = [label_mapping[i] for i in range(7)]
         
-        def goal(rank, weights, means, stds):
-            res = alpha-1
-            for k in range(len(weights)):
-                res += weights[k] * norm.cdf(rank, means[k], stds[k])
-            return(res)
+        def goal(x, weights, means, stds):
+            return sum(weights * norm.cdf(x, means, stds)) + alpha - 1
         
-        def goal_deriv(rank, weights, means, std):
-            res = 0
-            for k in range(len(weights)):
-                res += weights[k] * norm.pdf(rank, means[k], stds[k])
-            return(res)
+        def goal_deriv(x, weights, means, stds):
+            return sum(weights * norm.pdf(x, means, stds))
         
-        means = self.rank_stats.reindex(index = index)["mean"]
-        stds = self.rank_stats.reindex(index = index)["cluster_std"]
+        
+        #CHANGE THIS TO GET THE CORRECT ORDER
+        means = self.rank_stats.sort_values(by = 'labels')["mean"]
+        stds = self.rank_stats.sort_values(by = 'labels')["cluster_std"]
         
         roots = []
         for n, i in enumerate(self.full_ranks.index):
@@ -225,15 +221,19 @@ class ScoreMaker:
                 #count +=1  
             weights = densities[n]
             
-            root = fsolve(goal, x0 = means[self.full_ranks['sorted_labels'].loc[i]], fprime = goal_deriv, args = (weights, means, stds), xtol = 1)
-            roots += [root[0]]
+            func = lambda rank: goal(rank, weights, means, stds)
+            deriv = lambda rank: [goal_deriv(rank, weights, means, stds)] # Need to return a list
+            
+            root = fsolve(func, x0 = means[self.full_ranks['sorted_labels'].loc[i]], fprime = deriv)
+            roots += [root[0]] # Fsolve returns a singleton
         return roots
     
     def score_uncertainty(self, full_scores, eta = 1):
-        mean_ranks = full_scores.groupby('labels').mean()
+        scores = full_scores.copy()
+        mean_ranks = scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
         global_mean_ranks = global_mean_ranks.sort_values()
-        
+
         sorted_labels = global_mean_ranks.index.tolist()  # Get the sorted cluster labels
         
         self.sorted_labels = sorted_labels
@@ -244,10 +244,10 @@ class ScoreMaker:
         reverse_mapping = {rank: label for rank, label in enumerate(sorted_labels)}
 
         # Map the labels in the original DataFrame according to the sorted order
-        full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
+        scores['sorted_labels'] = scores['labels'].map(label_mapping)
         
         rank_stats = pd.DataFrame({'labels': global_mean_ranks.index, 'mean': global_mean_ranks.values})
-        rank_stats['labels'].map(label_mapping)     
+        #rank_stats['labels'].map(label_mapping)     
 
         covs = self.model.covariances_
         a = np.ones(4)/4
@@ -256,10 +256,10 @@ class ScoreMaker:
             clusters_std.append(np.sqrt(a.T.dot(covs[k]).dot(a)))
         rank_stats['cluster_std'] = clusters_std
 
-        self.full_ranks = full_scores
+        self.full_ranks = scores
         self.rank_stats = rank_stats
 
-        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': full_scores['sorted_labels']})
+        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': scores['sorted_labels']})
 
         ESGTV.dropna(inplace = True)
         
@@ -269,7 +269,7 @@ class ScoreMaker:
         for n, i in enumerate(ESGTV.index):
             count = 0
             left_incer, right_incer = 0, 0
-            k_star = self.full_ranks['sorted_labels'].loc[i]
+            k_star = self.full_ranks['labels'].loc[i]
             cond = self.rank_stats["labels"] == k_star
             mean_rank = self.rank_stats[cond]["mean"].values[0]
             mean_ranks += [mean_rank]
@@ -338,6 +338,7 @@ class ScoreMaker:
               
         self.ax.set_title('Uncertainty for each stock using the GMM')
         self.ax.set_xlabel('Index of the company')
+        #self.ax.set_xlabel('Sorted number of companies')
         self.ax.set_ylabel('ESG')
         self.ax.grid(True)
         

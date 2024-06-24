@@ -64,3 +64,10 @@ load_GSM.plot_rank_uncer(tri_ranks, save = True)
 #%% CDF quantiles
 
 roots = load_GSM.quantiles_mixture()
+esg_95 = np.maximum(roots, np.zeros(len(roots)))
+
+load_GSM.plot_rank_uncer([esg_95, mean_ranks, mean_ranks])
+
+#list1, list2 = (list(t) for t in zip(*sorted(zip(esg_95, mean_ranks))))
+
+#load_GSM.plot_rank_uncer([list1, list2, list2])

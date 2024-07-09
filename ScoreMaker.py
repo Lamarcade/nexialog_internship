@@ -156,7 +156,8 @@ class ScoreMaker:
     
     def make_score_2(self, full_scores, n_classes = 7, gaussian = True):
         
-        mean_ranks = full_scores.groupby('labels').mean()
+        scores = full_scores.copy()
+        mean_ranks = scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
         global_mean_ranks = global_mean_ranks.sort_values()
         
@@ -169,12 +170,12 @@ class ScoreMaker:
         label_mapping = {label: rank for rank, label in enumerate(sorted_labels)}
 
         # Map the labels in the original DataFrame according to the sorted order
-        full_scores['sorted_labels'] = full_scores['labels'].map(label_mapping)
+        scores['sorted_labels'] = scores['labels'].map(label_mapping)
         
         rank_stats = pd.DataFrame({'labels': global_mean_ranks.index, 'mean': global_mean_ranks.values})
         rank_stats['labels'].map(label_mapping)
-        rank_stats['mean_std'] = full_scores.groupby('sorted_labels').std().mean(axis=1)
-        rank_stats['std_mean_rank'] = full_scores.groupby('sorted_labels').mean().std(axis = 1)
+        rank_stats['mean_std'] = scores.groupby('sorted_labels').std().mean(axis=1)
+        rank_stats['std_mean_rank'] = scores.groupby('sorted_labels').mean().std(axis = 1)
         
         if gaussian:
             covs = self.model.covariances_
@@ -184,10 +185,10 @@ class ScoreMaker:
                 clusters_std.append(np.sqrt(a.T.dot(covs[k]).dot(a)))
             rank_stats['cluster_std'] = clusters_std
 
-        self.full_ranks = full_scores
+        self.full_ranks = scores
         self.rank_stats = rank_stats
 
-        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': full_scores['sorted_labels']})
+        ESGTV = pd.DataFrame({'Tag':self.valid_tickers,'Score': scores['sorted_labels']})
 
         ESGTV.dropna(inplace = True)
         return ESGTV
@@ -206,9 +207,9 @@ class ScoreMaker:
             return sum(weights * norm.pdf(x, means, stds))
         
         
-        #CHANGE THIS TO GET THE CORRECT ORDER
-        means = self.rank_stats.sort_values(by = 'labels')["mean"]
-        stds = self.rank_stats.sort_values(by = 'labels')["cluster_std"]
+        rank_stats = self.rank_stats.copy()
+        means = rank_stats.sort_values(by = 'labels')["mean"]
+        stds = rank_stats.sort_values(by = 'labels')["cluster_std"]
         
         roots = []
         for n, i in enumerate(self.full_ranks.index):
@@ -227,6 +228,15 @@ class ScoreMaker:
             root = fsolve(func, x0 = means[self.full_ranks['sorted_labels'].loc[i]], fprime = deriv)
             roots += [root[0]] # Fsolve returns a singleton
         return roots
+    
+    def set_cluster_parameters(self):
+        self.densities = self.model.predict_proba(self.ranks)
+        rank_stats = self.rank_stats.copy()
+        self.clusters_means = rank_stats.sort_values(by = 'labels')["mean"]
+        self.clusters_stds = rank_stats.sort_values(by = 'labels')["cluster_std"]
+        
+    def get_cluster_parameters(self):
+        return(self.densities, self.clusters_means, self.clusters_stds)
     
     def score_uncertainty(self, full_scores, eta = 1):
         scores = full_scores.copy()
@@ -328,19 +338,29 @@ class ScoreMaker:
             rank_df['cluster_std_rank'] = rank_df.mean(axis=1)
         return rank_df
     
-    def plot_rank_uncer(self, tri_ranks, save = True):
+    def plot_rank_uncer(self, tri_ranks, save = True, eng = True):
         fig_size = (8,6)
         sns.set_theme()
         self.fig, self.ax = plt.subplots(figsize=fig_size)
 
-        self.ax.plot(range(1,334), tri_ranks[2], 'bo', label = 'Mean')
-        self.ax.fill_between(range(1,334), tri_ranks[0], tri_ranks[1], alpha = .25, color = 'g', label = 'Min-Max ESG')
-              
-        self.ax.set_title('Uncertainty for each stock using the GMM')
-        self.ax.set_xlabel('Index of the company')
-        #self.ax.set_xlabel('Sorted number of companies')
-        self.ax.set_ylabel('ESG')
+        if eng:
+            self.ax.plot(range(1,334), tri_ranks[2], 'bo', label = 'Mean')
+            self.ax.fill_between(range(1,334), tri_ranks[0], tri_ranks[1], alpha = .25, color = 'g', label = 'Min-Max ESG')
+                  
+            self.ax.set_title('Uncertainty for each stock using the GMM')
+            self.ax.set_xlabel('Index of the company')
+            #self.ax.set_xlabel('Sorted number of companies')
+            self.ax.set_ylabel('ESG')
+        else:
+            self.ax.plot(range(1,334), tri_ranks[2], 'bo', label = 'Rang moyen du cluster assigné')
+            self.ax.fill_between(range(1,334), tri_ranks[0], tri_ranks[1], alpha = .25, color = 'g', label = "Rang minimal de l'entreprise")
+                  
+            self.ax.set_title('Incertitude du GMM pour chaque entreprise')
+            self.ax.set_xlabel("Nombre d'entreprises")
+            #self.ax.set_xlabel('Sorted number of companies')
+            self.ax.set_ylabel('Rang ESG')
+        
         self.ax.grid(True)
         
         self.ax.legend()
-        plt.savefig("Figures/Uncertainty_GMM.png")
+        plt.savefig("Figures/Incertitude_GMM.png")

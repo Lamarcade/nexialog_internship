@@ -304,14 +304,14 @@ mean_scores = round(scores_hanum.mean(axis = 1)).astype(int)
         
 quant_df = pd.DataFrame({'Pire': worst_scores, 'Meilleur': best_scores, 'Moyen': mean_scores})
 
-def plot_distributions(df, dist_type, binwidth = 0.1, n = 4, eng = True):
+def plot_distributions(df, dist_type, shrink = 0.1, n = 4, eng = True):
     cmap = 'GnBu_d'
     sns.set_theme(style="darkgrid")
     fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
 
     for (i, agency) in enumerate(df.columns):
         sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
-                     ax=ax[i], multiple='stack', binwidth = binwidth, legend=False)
+                     ax=ax[i], shrink = shrink, legend=False, discrete = True)
         if eng:
             ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
         else:
@@ -320,7 +320,7 @@ def plot_distributions(df, dist_type, binwidth = 0.1, n = 4, eng = True):
 
     plt.savefig("Figures/" + dist_type + "_distributions.png")
     
-plot_distributions(quant_df, "harmonisés selon quantiles MSCI", n=3, eng = False)
+plot_distributions(quant_df, "harmonisés selon quantiles MSCI", shrink = 0.5, n=3, eng = False)
 
 # %% Class Analysis
 

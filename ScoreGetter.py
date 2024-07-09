@@ -187,7 +187,7 @@ class ScoreGetter:
     def get_valid_sector_df(self):
         return self.valid_sector_df
     
-    def worst_score(self, scores_ranks, n_classes, reverse = False, get_all = False):
+    def worst_score(self, scores_ranks, n_classes = 7, reverse = False, get_all = False):
         ranks = scores_ranks.copy()
         
         # Transforms the ranks into 0 to n_classes-1 scores
@@ -216,16 +216,39 @@ class ScoreGetter:
         if get_all:
            return res, ranks 
         return(res)
-
     
-    def plot_distributions(self, df, dist_type, binwidth = 0.1, n = 4, eng = True):
+    def worst_std_score(self, std_scores, n_classes = 7, reverse = False, get_all = False):
+        std_df = std_scores.copy()
+        list_scores = list(range(n_classes))
+        
+        for agency in std_df.columns:
+            def mapping(score):
+                thresholds = [min(std_df[agency]) + i* (max(std_df[agency]) - min(std_df[agency]))/n_classes for i in range(n_classes)]
+                for i in range(len(thresholds)):
+                    if score <= thresholds[i]:
+                        return(list_scores[i]-1)
+                return n_classes-1
+            std_df[agency] = std_df[agency].map(mapping)
+        
+        # Worst score across columns
+        if reverse:
+            scores = std_df.max(axis = 1)
+        else:
+            scores = std_df.min(axis = 1)
+        
+        res = pd.DataFrame({'Tag':self.valid_tickers,'Score':scores})
+        if get_all:
+           return res, std_df 
+        return(res)
+    
+    def plot_distributions(self, df, dist_type, shrink = 1, n = 4, eng = True):
         cmap = 'GnBu_d'
         sns.set_theme(style="darkgrid")
         fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
 
         for (i, agency) in enumerate(df.columns):
             sns.histplot(data=df, x=agency, hue=agency, palette=cmap,
-                         ax=ax[i], multiple='stack', binwidth = binwidth, legend=False)
+                         ax=ax[i], discrete = True, shrink = shrink, legend=False)
             if eng:
                 ax[i].set_title(str(agency) + ' ' + dist_type + ' scores distribution')
             else:

@@ -35,7 +35,7 @@ SG_agencies.reduced_df()
 SG_agencies.set_valid_df()
 scores_valid = SG_agencies.get_score_df()
 #standard_scores = SG_agencies.standardise_df()
-#min_max_scores = SG_agencies.min_max_df()
+min_max_scores = SG_agencies.min_max_df()
 
 #SG_agencies.plot_distributions(scores_valid, "")
 #SG_agencies.plot_distributions(min_max_scores, "min_max")
@@ -86,7 +86,7 @@ complete_sectors = sectors_list.copy()
 complete_sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
 complete_sectors.sort_index(inplace = True)
 
-epf.plot_asset_evolution(ESG_range, save = True, sectors_df = complete_sectors, min_weight = 0.0001)
+#epf.plot_asset_evolution(ESG_range, save = True, sectors_df = complete_sectors, min_weight = 0.0001)
 
 
 #%% Sharpes with exclusion
@@ -186,7 +186,7 @@ xpf.new_figure()
 for i, agency in enumerate(dict_agencies.keys()):
     if i == 3:
         save = True
-    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency)   
+    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False)   
     
 #%% Sharpe speed
 

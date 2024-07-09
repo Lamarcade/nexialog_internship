@@ -17,7 +17,7 @@ import seaborn as sns
 from scipy.stats import kendalltau
 
 from sklearn.mixture import GaussianMixture
-from scipy.stats import multivariate_normal
+from scipy.stats import multivariate_normal, norm
 
 path = "Portefeuille/sp500_stocks_short.csv"
 annual_rf = 0.05 # Risk-free rate
@@ -59,15 +59,39 @@ for agency in dict_agencies:
 min_ranks, max_ranks = mean_ranks - left_inc , mean_ranks + right_inc
 tri_ranks = [min_ranks, max_ranks, mean_ranks]
 
-load_GSM.plot_rank_uncer(tri_ranks, save = True)
+#load_GSM.plot_rank_uncer(tri_ranks, save = True)
 
 #%% CDF quantiles
 
 roots = load_GSM.quantiles_mixture()
 esg_95 = np.maximum(roots, np.zeros(len(roots)))
 
-load_GSM.plot_rank_uncer([esg_95, mean_ranks, mean_ranks])
+#load_GSM.plot_rank_uncer([esg_95, mean_ranks, mean_ranks], eng = False)
 
-#list1, list2 = (list(t) for t in zip(*sorted(zip(esg_95, mean_ranks))))
+list1, list2 = (list(t) for t in zip(*sorted(zip(esg_95, mean_ranks))))
+list3, list4 = (list(t) for t in zip(*sorted(zip(mean_ranks, esg_95))))
 
-#load_GSM.plot_rank_uncer([list1, list2, list2])
+#load_GSM.plot_rank_uncer([list4, list3, list3], eng = False)
+
+#%% Expected rank
+
+load_GSM.set_cluster_parameters()
+densities, means, stds = load_GSM.get_cluster_parameters()
+
+true_mean_ranks = scores_ranks.mean(axis = 1)
+
+def cdf_sum(x, weights, means, stds):
+    return sum(weights * norm.cdf(x, means, stds))
+
+n, k = densities.shape
+expected_ranks = np.zeros(n)
+for i in range(n):
+    #f = lambda x: cdf_sum(x, densities[i], means, stds)
+    #rank_transfo[i] = cdf_sum(true_mean_ranks.values[i], densities[i], means, stds)
+    expected_ranks[i] = sum(densities[i]*means)
+   
+sns.set_theme()
+rank_differences = expected_ranks - true_mean_ranks
+plt.figure()
+sns.boxplot(rank_differences)
+plt.title("Difference between expected rank from the GMM and true mean rank")

@@ -47,6 +47,26 @@ load_GSM.load_model('gauss.pkl')
 full_scores = load_GSM.get_predictions()
 ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
 
+roots = load_GSM.quantiles_mixture()
+rank_95 = np.maximum(roots, np.zeros(len(roots)))
+
+clusters_stats = load_GSM.rank_stats[["labels","mean"]]
+
+def mapping(score):
+    for i in range(len(clusters_stats["mean"])):
+        if score <= clusters_stats["mean"].loc[i]:
+            return(clusters_stats.index[i])
+    return clusters_stats.index[6]
+
+def close_mapping(score):
+    distances = [abs(clusters_stats["mean"].loc[i] - score) for i in range(len(clusters_stats))]
+    min_index = np.argmin(distances)
+
+    return(clusters_stats.index[min_index])
+
+#df_95 = pd.DataFrame({'Tag': valid_tickers, 'Score': rank_95})
+#df_95["Score"] = df_95["Score"].apply(close_mapping)
+
 # =============================================================================
 # plt.figure(figsize = (20,6))
 # plt.plot(range_number, ESGTV3['Score'], 'bo', label = 'Worst')
@@ -55,8 +75,9 @@ ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
 # plt.legend()
 # plt.show()
 # =============================================================================
-esg_df = pd.DataFrame({'Tag': valid_tickers, 'KMeans': ESGTV3['Score'], 'GMM': ESGTV4['Score']})
- 
+#esg_df = pd.DataFrame({'Tag': valid_tickers, 'KMeans': ESGTV3['Score'], 'GMM': ESGTV4['Score']})
+#esg_df = pd.DataFrame({'Tag': valid_tickers, 'GMM': ESGTV4['Score'], 'GMM 95%': df_95['Score']})
+esg_df = pd.DataFrame({'Tag': valid_tickers, 'GMM Rank': ESGTV4['Score'].rank(method = 'min'), 'GMM Rank 95%': rank_95})
 #%% Sharpes with exclusion
 sharpes_t = [[] for i in range(2)]
 ESGs = [[] for i in range(2)]
@@ -149,12 +170,10 @@ xpf.new_figure()
 for i, method in enumerate(esg_df.columns[1:]):
     if i == 1:
         save = True
-    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, method, eng = False) 
+    xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, method + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False) 
     
 #%%
-save = False
+save = True
 xpf.new_figure()
-for i, method in enumerate(esg_df.columns[1:]):
-    if i == 1:
-        save = True
-    xpf.plot_esg_exclusion(ESGs[i], range(len(ESGs[i])), save, method, eng = False) 
+xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save, eng = False, gaussian = True) 
+    

@@ -18,7 +18,7 @@ annual_rf = 0.05 # Risk-free rate
 
 #%% Retrieve the scores and compute the ranks 
 SG = ScoreGetter('ESG/Scores/')
-SG.reduced_mixed_df()
+SG.reduced_df()
 scores_ranks = SG.get_rank_df()
 dict_agencies = SG.get_dict()
 valid_tickers, valid_indices = SG.get_valid_tickers(), SG.get_valid_indices()
@@ -40,9 +40,23 @@ standard_scores = SG_agencies.standardise_df()
 #SG_agencies.plot_distributions(scores_valid, "no_norma")
 #SG_agencies.plot_distributions(min_max_scores, "min_max")
 
+load_SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_SM.load_model('kmeans.pkl')
+k_scores = load_SM.get_predictions()
+ESGTV3 = load_SM.make_score_2(k_scores, n_classes = 7, gaussian = False)
+
+load_GSM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_GSM.load_model('gauss.pkl')
+full_scores = load_GSM.get_predictions()
+ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
+
 agencies_df_list = []
 for agency in scores_ranks.columns:
     agencies_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': scores_ranks[agency]}))
+    
+clusters_df_list = []
+clusters_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': ESGTV3['Score'].rank(method = 'min')}))
+clusters_df_list.append(pd.DataFrame({'Tag': valid_tickers, 'Score': ESGTV4['Score'].rank(method = 'min')}))
     
 #%% Get the stock data and keep the companies in common with the target variable
 st = Stocks(path, annual_rf)
@@ -50,7 +64,7 @@ st.process_data()
 st.compute_monthly_returns()
 
 # 0: MSCI 1: Sustainalytics 2: S&P 3: Refinitiv
-provider = 'Re'
+provider = 'Refinitiv'
 _ = st.keep_common_tickers(agencies_df_list[3], sectors_list)
 #_ = st.keep_common_tickers(ESGTV, sectors_list)
 
@@ -81,11 +95,11 @@ epf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, tickers = stoc
 risks, returns, sharpes = epf.efficient_frontier(max_std = 0.10, method = 2)
 epf.new_figure()
 #epf.plot_tangent(tangent_risk, tangent_return)
-epf.plot_constrained_frontier(risks, returns)
+epf.plot_constrained_frontier(risks, returns, eng = False)
 
 save = False
-step = 40
-emin, emax = 130, 332
+step = 30
+emin, emax = 130, 320
 #count, num_iters = 1, 1 + ((int(max(stocks_ESG))) - int(min(stocks_ESG))) // step
 count, num_iters = 1, 1 + (emax - emin) // step
 
@@ -93,15 +107,15 @@ for min_ESG in range(emin, emax, step):
     if not(count % 2):
         print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = int(num_iters)))
     risks_new, returns_new, sharpes_new = epf.efficient_frontier(max_std = 0.10, method = 2, new_constraints = [epf.ESG_constraint(min_ESG)])
-    if min_ESG >= (emax-1-step):
-        save = True
+    #if min_ESG >= (emax-1-step):
+        #save = True
     epf.plot_constrained_frontier(risks_new, returns_new, ESG_min_level = min_ESG, savefig = save, score_source = provider, eng = False)
     count += 1
 
 #%% Sector evolution
 ESG_range = range(emin, emax, step)
     
-for i,agency in enumerate(scores_ranks.columns):
+for i,agency in enumerate(dict_agencies.columns):
     
     st = Stocks(path, annual_rf)
     st.process_data()

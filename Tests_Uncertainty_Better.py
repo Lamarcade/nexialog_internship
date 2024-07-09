@@ -30,23 +30,36 @@ sectors_list = SG.valid_sector_df
 
 #%% Create a target variable
 
-# Cluster technique
-SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_SM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_SM.load_model('kmeans.pkl')
+k_scores = load_SM.get_predictions()
+ESGTV3 = load_SM.make_score_2(k_scores, n_classes = 7, gaussian = False)
 
-SMK = SM.kmeans()
-SMG, taumax = SM.classify_gaussian_mixture()
+load_GSM = ScoreMaker(scores_ranks, dict_agencies, valid_tickers, valid_indices, 7)
+load_GSM.load_model('gauss.pkl')
+full_scores = load_GSM.get_predictions()
+ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
 
-# ESG Target variables
-#ESGTV = SM.make_score(SMK, n_classes = 7)
-#ESGTV2 = SM.make_score(SMG, n_classes = 7)
+roots = load_GSM.quantiles_mixture()
+rank_95 = np.maximum(roots, np.zeros(len(roots)))
 
-# Worst score approach
-ESGTV3, all_ranks = SG.worst_score(scores_ranks, n_classes = 7, get_all = True)
-ESGTV4 = SG.worst_score(scores_ranks, n_classes = 7, reverse = True)
+clusters_stats = load_GSM.rank_stats[["labels","mean"]]
 
-ESGTV5 = pd.DataFrame({'Tag': ESGTV3['Tag'], 'Score': round(all_ranks.mean(axis = 1)).astype(int)})
+def mapping(score):
+    for i in range(len(clusters_stats["mean"])):
+        if score <= clusters_stats["mean"].loc[i]:
+            return(clusters_stats.index[i])
+    return clusters_stats.index[6]
 
-range_number = range(len(ESGTV3))
+def close_mapping(score):
+    distances = [abs(clusters_stats["mean"].loc[i] - score) for i in range(len(clusters_stats))]
+    min_index = np.argmin(distances)
+
+    return(clusters_stats.index[min_index])
+
+#df_95 = pd.DataFrame({'Tag': valid_tickers, 'Score': rank_95})
+#df_95["Score"] = df_95["Score"].apply(close_mapping)
+
 # =============================================================================
 # plt.figure(figsize = (20,6))
 # plt.plot(range_number, ESGTV3['Score'], 'bo', label = 'Worst')
@@ -55,11 +68,32 @@ range_number = range(len(ESGTV3))
 # plt.legend()
 # plt.show()
 # =============================================================================
-esg_df = pd.DataFrame({'Tag': valid_tickers, 'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
+#esg_df = pd.DataFrame({'Tag': valid_tickers, 'KMeans': ESGTV3['Score'], 'GMM': ESGTV4['Score']})
+#esg_df = pd.DataFrame({'Tag': valid_tickers, 'GMM': ESGTV4['Score'], 'GMM 95%': df_95['Score']})
+esg_df = pd.DataFrame({'Tag': valid_tickers, 'GMM Rank': ESGTV4['Score'].rank(method = 'min'), 'GMM Rank 95%': rank_95})
+
+
+# Worst score approach
+#ESGTV3, all_ranks = load_GSM.worst_score(scores_ranks, n_classes = 7, get_all = True)
+#ESGTV4 = load_GSM.worst_score(scores_ranks, n_classes = 7, reverse = True)
+
+#ESGTV5 = pd.DataFrame({'Tag': ESGTV3['Tag'], 'Score': round(all_ranks.mean(axis = 1)).astype(int)})
+
+#range_number = range(len(ESGTV3))
+# =============================================================================
+# plt.figure(figsize = (20,6))
+# plt.plot(range_number, ESGTV3['Score'], 'bo', label = 'Worst')
+# plt.plot(range_number, ESGTV4['Score'], 'go', label = 'Best')
+# plt.plot(range_number, ESGTV5['Score'], 'ro', label = 'Average')
+# plt.legend()
+# plt.show()
+# =============================================================================
+#esg_df = pd.DataFrame({'Tag': valid_tickers, 'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
 
 #dist_df = pd.DataFrame({'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
-dist_df = pd.DataFrame({'Pire': ESGTV3['Score'], 'Meilleur': ESGTV4['Score'], 'Moyen': ESGTV5['Score']})
-SG.plot_distributions(dist_df, dist_type = 'harmonisés', n = 3, eng = False)
+#dist_df = pd.DataFrame({'Pire': ESGTV3['Score'], 'Meilleur': ESGTV4['Score'], 'Moyen': ESGTV5['Score']})
+#SG.plot_distributions(dist_df, dist_type = 'harmonisés', n = 3, eng = False)
+
  
 #%% Sharpes with exclusion
 sharpes_t = []
@@ -143,7 +177,7 @@ for count in count_list:
     restricted_index = stocks_sectors.index.drop(-1)
 
     ESG_triple = esg_df.loc[restricted_index]
-    for i in range(3):   
+    for i in range(2):   
         xpf.set_ESGs(ESG_triple[ESG_triple.columns[i+1]].to_numpy())
         ESGs[i].append(xpf.get_ESG(weights_t))
 
@@ -151,10 +185,14 @@ for count in count_list:
 
 save = True
 xpf.new_figure()
-xpf.plot_sharpe_exclusion(sharpes_t, range(len(sharpes_t)), save, "Score moyen", eng = False) 
+
+#esgs = [round(x,2) for x in ESGs[2]]
+
+n_efficient = len(sharpes_t)
+xpf.plot_sharpe_exclusion(sharpes_t, range(n_efficient), save, "Score moyen, " + str(n_efficient) + ' actifs ESG-efficients', eng = False)
     
 #%%
 save = True
 xpf.new_figure()
 
-xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save, eng = False) 
+xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save, eng = False, gaussian = True) 

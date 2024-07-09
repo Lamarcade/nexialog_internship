@@ -244,3 +244,25 @@ q_kendall = [0,0,0]
 for i, policy in enumerate(['Worst','Best','Mean']):
     for agency in dict_agencies:
         q_kendall[i] += kendalltau(scores_ranks[agency][valid_indices], q_esg_df[policy], variant = 'c').statistic / len(dict_agencies)
+
+#%%
+SG2 = ScoreGetter('ESG/Scores/')
+SG2.reduced_df()
+SG2.set_valid_df()
+std_df = SG2.standardise_df()
+
+# Worst score approach
+ESGTV9, all_scores = SG2.worst_std_score(std_df, n_classes = 7, get_all = True)
+ESGTV10 = SG2.worst_std_score(std_df, n_classes = 7, reverse = True)
+
+ESGTV11 = pd.DataFrame({'Tag': ESGTV6['Tag'], 'Score': round(all_scores.mean(axis = 1)).astype(int)})
+
+range_number = range(len(ESGTV9))
+
+#dist_df = pd.DataFrame({'Worst': ESGTV3['Score'], 'Best': ESGTV4['Score'], 'Mean': ESGTV5['Score']})
+hstd_df = pd.DataFrame({'Pire': ESGTV9['Score'], 'Meilleur': ESGTV10['Score'], 'Moyen': ESGTV11['Score']})
+
+hstd_kendall = [0,0,0]
+for i, policy in enumerate(['Pire','Meilleur','Moyen']):
+    for agency in dict_agencies:
+        hstd_kendall[i] += kendalltau(scores_ranks[agency][valid_indices], hstd_df[policy], variant = 'c').statistic / len(dict_agencies)

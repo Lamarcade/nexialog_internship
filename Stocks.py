@@ -120,20 +120,7 @@ class Stocks:
         best_indices = np.sort(best_indices)
         if not(self.rf_params):
             best_indices +=1
-# =============================================================================
-#         self.targetESG = [self.targetESG[i] for i in range(self.n_assets) if i in best_indices]
-#         
-#         if self.sectors is not None:
-#             self.sectors = self.sectors.iloc[best_indices]
-#             self.index = self.sectors.index
-#             
-#         self.n_assets -= worst_count 
-#         
-#         if self.tickers is not None:
-#             self.tickers = self.tickers[best_indices]
-#             
-#         self.returns = self.returns.iloc[:, best_indices]
-# =============================================================================
+
         sectors, targetESG = self.keep_assets(best_indices)
         return(sectors, targetESG)
     

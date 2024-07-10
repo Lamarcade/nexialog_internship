@@ -196,9 +196,6 @@ class ScoreMaker:
     
     def quantiles_mixture(self, alpha = 0.95):
         densities = self.model.predict_proba(self.ranks) # shape nsamples x ncomponents
-        label_mapping = {label: rank for rank, label in enumerate(self.sorted_labels)}
-
-        index = [label_mapping[i] for i in range(7)]
         
         def goal(x, weights, means, stds):
             return sum(weights * norm.cdf(x, means, stds)) + alpha - 1
@@ -213,13 +210,7 @@ class ScoreMaker:
         
         roots = []
         for n, i in enumerate(self.full_ranks.index):
-            #count = 0
-            #weights, means, stds = [], [], []
-            #for k in self.sorted_labels:
-                #fac = densities[n][self.sorted_labels.index(k)] # reverse the mapping for k
-                #weights += [fac]
-                #stds += [self.rank_stats["clusters_std"][count]]
-                #count +=1  
+
             weights = densities[n]
             
             func = lambda rank: goal(rank, weights, means, stds)

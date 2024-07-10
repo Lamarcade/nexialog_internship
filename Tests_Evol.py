@@ -137,13 +137,6 @@ for i, agency in enumerate(dict_agencies.keys()):
         
         weights_t = xpf.tangent_portfolio()
 
-        #xpf.set_sectors_composition(weights_t)
-        
-        #valid_composition = xpf.sectors_composition.copy()
-        #for weight, acronym in zip(valid_composition['Weight'],valid_composition['Acronym']):
-           # if acronym not in sectors_weights:
-                #sectors_weights[acronym] = []
-            #sectors_weights[acronym].append(weight)
             
         for weight, ticker in zip(weights_t,xpf.tickers):
             if ticker not in assets_weights:

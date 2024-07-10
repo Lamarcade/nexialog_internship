@@ -21,7 +21,7 @@ class Portfolio:
         self.short_sales = short_sales
         self.sectors = sectors
         
-        # Is the risk-free included in the mean and covariance
+        # Is the risk-free included in the mean and covariance?
         self.rf_params = rf_params
         
         self.existing_plot = False

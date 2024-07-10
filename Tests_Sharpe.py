@@ -89,7 +89,6 @@ def Sharpe_analysis(df_list, list_agencies, low_ESG = 0, up_ESG = 1.05, step = 0
         st.process_data()
         st.compute_monthly_returns()
         _ = st.keep_common_tickers(df_list[i], sectors_list)
-        #_ = st.keep_common_tickers(ESGTV, sectors_list)
         
         stocks_sectors, stocks_ESG = st.select_assets(5)
         #stocks_ESG = st.restrict_assets(50)

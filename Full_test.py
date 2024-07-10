@@ -28,9 +28,9 @@ Te.stocks_init(3)
 Te.set_agencies_df_list(ranks = False, scores = False, standard=True)
 Te.clusters_variables(standardize = True)
 Te.harmonized_variables()
-#Te.combine_TV_lists()
+Te.combine_TV_lists()
 #Te.sharpe_analysis()
 
 #%%
-Te.set_agencies_df_list()
+#Te.set_agencies_df_list()
 Te.sharpe_exclusion()

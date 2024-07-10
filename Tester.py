@@ -226,10 +226,15 @@ class Tester:
         complete_sectors.sort_index(inplace = True)
         self.complete_sectors = complete_sectors
         
-        #% Sharpes with exclusion
-        sharpes_t = [[] for i in range(4)]
+        p = len(self.agencies_df_list)
 
-        for i, agency in enumerate(self.dict_agencies.keys()):
+        #% Sharpes with exclusion
+        sharpes_t = [[] for i in range(p)]
+
+        for i in range(p):
+            print(i)
+            agency = self.agencies_indices[i]
+            
             self.stocks_init(i)
             
             #% Build a portfolio with restrictions on the minimal ESG score
@@ -282,8 +287,10 @@ class Tester:
 
         save = False
         xpf.new_figure()
-        for i, agency in enumerate(self.dict_agencies.keys()):
-            if i == 3:
+        
+        for i in range(p):
+            agency = self.agencies_indices[i]
+            if i == (p-1):
                 save = True
             xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False)   
             

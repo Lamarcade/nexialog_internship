@@ -62,8 +62,7 @@ class Tester:
         load_GSM = ScoreMaker(self.scores_ranks, self.dict_agencies, self.valid_tickers, self.valid_indices, 7)
         load_GSM.load_model('gauss.pkl')
         full_scores = load_GSM.get_predictions()
-        ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
-        
+        ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)      
         self.load_GSM = load_GSM
         
         self.clusters_df_list = []
@@ -93,6 +92,44 @@ class Tester:
         std_ESGTV7['Score'] = (std_ESGTV7['Score']- std_ESGTV7['Score'].mean()) / std_ESGTV7['Score'].std()
         
         self.harmonized_df_list = [std_ESGTV5, std_ESGTV6, std_ESGTV7]
+        
+    def cluster_uncertainty(self, ranks = True):
+
+        load_GSM = ScoreMaker(self.scores_ranks, self.dict_agencies, self.valid_tickers, self.valid_indices, 7)
+        load_GSM.load_model('gauss.pkl')
+        full_scores = load_GSM.get_predictions()
+        ESGTV4 = load_GSM.make_score_2(full_scores, n_classes = 7, gaussian = True)
+        self.load_GSM = load_GSM
+        
+        roots = load_GSM.quantiles_mixture()
+        rank_95 = np.maximum(roots, np.zeros(len(roots)))
+
+        self.clusters_stats = load_GSM.rank_stats[["labels","mean"]]
+
+        def mapping(score):
+            for i in range(len(self.clusters_stats["mean"])):
+                if score <= self.clusters_stats["mean"].loc[i]:
+                    return(self.clusters_stats.index[i])
+            return self.clusters_stats.index[6]
+
+        def close_mapping(score):
+            distances = [abs(self.clusters_stats["mean"].loc[i] - score) for i in range(len(self.clusters_stats))]
+            min_index = np.argmin(distances)
+
+            return(self.clusters_stats.index[min_index])
+
+        if ranks:
+            esg_df = pd.DataFrame({'Tag': self.valid_tickers, 'GMM': ESGTV4['Score'].rank(method = 'min'), 'GMM 95%': rank_95})
+        else:
+            
+            df_95 = pd.DataFrame({'Tag': self.valid_tickers, 'Score': rank_95})
+            df_95["Score"] = df_95["Score"].apply(close_mapping)
+
+            esg_df = pd.DataFrame({'Tag': self.valid_tickers, 'GMM': ESGTV4['Score'], 'GMM 95%': df_95['Score']})
+            
+        self.agencies_df_list = [esg_df[['Tag', 'GMM']].rename(columns = {'GMM':'Score'}), esg_df[['Tag', 'GMM 95%']].rename(columns = {'GMM 95%':'Score'})]
+        self.agencies_indices = {0:"GMM", 1:"GMM 95%"}
+
     
     def combine_TV_lists(self):
         self.agencies_indices = {0:"MS", 1:"SU", 2:"SP", 3:"RE", 4:"KMeans", 5:"GMM", 6:"Pire", 7:"Meilleur", 8:"Moyen"}
@@ -188,7 +225,7 @@ class Tester:
             
             self.pf.plot_sector_evolution(ESG_range, save = True, source = agency, min_weight = 0.001, sectors_weights = sectors_weights, xlabel = "Contrainte de rang ESG", eng = False)
 
-    def sharpe_analysis(self, low_ESG = 0, up_ESG = 1.05, step = 0.01):
+    def sharpe_DR_analysis(self, low_ESG = 0, up_ESG = 1.05, step = 0.01, sharpe = True):
         
         save = False
         spearmans = {}
@@ -211,15 +248,20 @@ class Tester:
             self.pf.set_ESGs(self.stocks_ESG)
             
             emin, emax = min(self.stocks_ESG), max(self.stocks_ESG)
-            sharpes, ESG_list = self.pf.efficient_frontier_ESG(emin, emax, interval = step)
-            spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
             if i == p-1:
                 save = True
-            self.pf.plot_sharpe(sharpes, ESG_list, save = save, source = agency)
+            if sharpe:
+                sharpes, ESG_list = self.pf.efficient_frontier_ESG(emin, emax, interval = step)
+                spearmans[agency] = spearmanr(sharpes, ESG_list).statistic
+                self.pf.plot_sharpe(sharpes, ESG_list, save = save, source = agency)
+            else:
+                DRs, ESG_list = epf.diversification_ESG(emin, emax + step, interval = step)
+                self.pf.plot_general_frontier(ESG_list, DRs, fig_label = agency, fig_title = "DRs", xlabel = "ESG constraint", ylabel = "Diversification Ratio", save = save, new_fig = False)
+
 
         return(spearmans)
     
-    def sharpe_exclusion(self):
+    def sharpe_sector_exclusion(self, sharpe = True):
         
         complete_sectors = self.sectors_list.copy()
         complete_sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
@@ -229,7 +271,11 @@ class Tester:
         p = len(self.agencies_df_list)
 
         #% Sharpes with exclusion
-        sharpes_t = [[] for i in range(p)]
+        if sharpe:
+            sharpes_t = [[] for i in range(p)]
+        else:
+            weights_agencies = [{} for i in range(p)]
+            assets_weights_agencies = [{} for i in range(p)]
 
         for i in range(p):
             print(i)
@@ -257,9 +303,11 @@ class Tester:
             self.mean, _ , self.rf = self.st.get_mean(), self.st.get_covariance(), self.st.get_rf()
             self.cov = self.st.covariance_approximation()
             
-            #%%
+            #%
             count_list = range(len(indices))
 
+            if not(sharpe):
+                assets_weights = {}
             for count in count_list:
                 est = Stocks(self.path, self.annual_rf)
                 est.process_data()
@@ -277,22 +325,47 @@ class Tester:
                 mean, _, rf = est.get_mean(), est.get_covariance(), est.get_rf()
                 cov = est.covariance_approximation()
             
-                xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors)
+                xpf = ESG_Portfolio(mean,cov,rf, stocks_ESG, short_sales = False, sectors = stocks_sectors, tickers = est.tickers)
                 xpf = xpf.risk_free_stats()
                 
                 weights_t = xpf.tangent_portfolio()
-                sharpes_t[i].append(xpf.get_sharpe(weights_t))
+                if sharpe:
+                    sharpes_t[i].append(xpf.get_sharpe(weights_t))
+                else:                             
+                    for weight, ticker in zip(weights_t,xpf.tickers):
+                        if ticker not in assets_weights:
+                            assets_weights[ticker] = []
+                        assets_weights[ticker].append(weight)
+            if not(sharpe):
+                assets_weights_agencies[i] = assets_weights
 
-        #%%
-
+        #%
         save = False
-        xpf.new_figure()
-        
-        for i in range(p):
-            agency = self.agencies_indices[i]
-            if i == (p-1):
-                save = True
-            xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False)   
-            
+        if sharpe: 
+            xpf.new_figure()
+            for i in range(p):
+                agency = self.agencies_indices[i]
+                if i == (p-1):
+                    save = True
+                xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False)   
+                
+        else:
+            i = 0 
+            for assets_weights in assets_weights_agencies:
+                agency = self.agencies_indices[i]
+                max_length = max([len(assets_weights[ticker]) for ticker in assets_weights])
+                
+                complete_weights = xpf.complete_weights_lists(assets_weights)
 
+                xpf.plot_asset_evolution(range(max_length), complete_sectors, save = True, source = agency, min_weight = 0.0001, assets_weights = complete_weights, xlabel = "Number of worst ESG stocks excluded")
+
+                sectors_weights = xpf.sectors_evolution_from_tickers(assets_weights, complete_sectors)
+                weights_agencies[i] = sectors_weights
+
+                max_length = max([len(sectors_weights[acronym]) for acronym in sectors_weights])
+
+                xpf.plot_sector_evolution(range(max_length), save = True, source = agency, min_weight = 0.0001, sectors_weights = sectors_weights, xlabel = "Number of worst ESG stocks excluded")
+
+                i += 1
+                
     

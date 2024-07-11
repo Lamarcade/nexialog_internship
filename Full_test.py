@@ -17,6 +17,7 @@ Te.set_scores()
 #%%
 Te.set_agencies_df_list(ranks = False, scores = True)
 Te.stocks_init(3)
+#Te.add_risk_free()
 #Te.esg_frontiers(80, 92, 2, 3)
 #Te.sector_esg_frontiers(3)
 #%%
@@ -30,7 +31,13 @@ Te.clusters_variables(standardize = True)
 Te.harmonized_variables()
 Te.combine_TV_lists()
 #Te.sharpe_analysis()
+#Te.sharpe_DR_analysis(sharpe = False)
 
 #%%
 #Te.set_agencies_df_list()
-Te.sharpe_exclusion()
+#Te.sharpe_sector_exclusion()
+#Te.sharpe_sector_exclusion(sharpe = False)
+
+#%%
+Te.cluster_uncertainty()
+#Te.sharpe_sector_exclusion()

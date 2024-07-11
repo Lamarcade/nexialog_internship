@@ -1,147 +1,525 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  1 11:11:28 2024
+Created on Tue Apr 23 14:42:47 2024
 
 @author: LoïcMARCADET
 """
 
-#%% Libraries
 import numpy as np
 import matplotlib.pyplot as plt
-import numpy.random
+from scipy.optimize import minimize
+import seaborn as sns
+from Portfolio import Portfolio
 import pandas as pd
+from collections import defaultdict
+from matplotlib.ticker import FuncFormatter
 
-from ESG.scores_utils import * 
-from Portefeuille.portfolio_utils import *
-from make_scores import *
+class ESG_Portfolio(Portfolio):   
+    def __init__(self, mu,sigma, rf, ESGs, short_sales = True, sectors = None, tickers = None, rf_params = False):
+        super().__init__(mu,sigma, rf, short_sales, sectors, tickers, rf_params)
+        self.ESGs = ESGs
+        
+    def get_ESG(self, weights):
+        if self.rf_params:
+            # The risk-free asset does not have an ESG score
+            if weights[0] < 0.99:
+                return weights[1:].dot(self.ESGs) / sum(weights[1:])
+            else:
+                return 0
+        else:
+            return weights.dot(self.ESGs) / sum(weights)
 
-#%% 
-stocks = pd.read_csv("Portefeuille/sp500_stocks_short.csv")
-
-# Convert 'Date' column to datetime
-stocks['Date'] = pd.to_datetime(stocks['Date'])
-
-# Pivot the DataFrame to have symbols as columns
-stocks_pivot = stocks.pivot(index='Date', columns='Symbol', values='Adj Close')
-
-# Calculate monthly returns for each symbol
-monthly_returns = stocks_pivot.resample('ME').ffill().pct_change()
-
-monthly_returns = monthly_returns.iloc[1:]
-
-# Drop columns that have at least 50 NaN
-monthly_returns = monthly_returns.dropna(axis=1, thresh=50)
-
-#%% Get ESG variable
-target_variable = ESGTV
-
-#%% Filter out missing values
-
-#Keep only the companies for which we have monthly returns
-mr_tickers = monthly_returns.columns.tolist()
-tv_filtered = target_variable.loc[target_variable['Tag'].isin(mr_tickers)]
-
-# Keep only the companies for with we have ESG Scores
-tv_tickers = tv_filtered['Tag'].tolist()
-mr_filtered = monthly_returns.loc[:, monthly_returns.columns.isin(tv_tickers)]
-
-#%%
-n_assets = 200
-mr = mr_filtered.iloc[:, :n_assets]
-
-means = np.array(mr.mean(axis = 0))
-cov = np.array(mr.cov())
-
-
-ESG_tv = np.array(tv_filtered['Score'].tolist()[:n_assets])
-#%%
-r_annual = 0.05 # Risk-free rate
-rf = (1+r_annual)**(1/12)-1
-
-means_rf = rf_mean(means, rf)
-cov_rf = rf_var(cov)
-# ESG scores of the assets
-ESGs = np.random.random(n_assets)
-
-# ESG preference functions
-f = lambda s: s/10
-g = lambda s: s+1
-
-#%%
-# Standard efficient frontier without a risk-free asset
-ef_points = efficient_jac(means, cov, rf, min_risk_tol=0, num_points = 100, short_sales = True)
-stds, mus = [p[0] for p in ef_points], [p[1] for p in ef_points]
-sh = get_sharpe(mus, stds, rf)
-
-# Standard efficient frontier with a risk-free asset
-ef_points_rf = efficient_jac(means_rf, cov_rf, rf, min_risk_tol = 0, num_points = 100, short_sales = True)
-stds_rf, mus_rf = [p[0] for p in ef_points_rf], [p[1] for p in ef_points_rf]
-sh_rf = get_sharpe(mus_rf, stds_rf, rf)
-
-# Risk and return of the optimal portfolio
-tangent_std, tangent_ret = optim_sharpe(means, cov, rf)
-tangent_std_rf, tangent_ret_rf = optim_sharpe(means_rf, cov_rf, rf)
-
-std_range = np.arange(0.001, 0.20, 0.01)
-cml = capital_market_line(rf,tangent_ret, tangent_std, std_range)
-
-# =============================================================================
-# # Dirichlet distribution for the frontier close to the origin    
-# dir_avg = np.ones(n_assets+1)
-# dir_avg[0] = n_assets
-# 
-# # Dirichlet distribution for the frontier in the upper-right part
-# profit_idx = np.argmax(means_rf)
-# dir0_avg = np.ones(n_assets+1)
-# dir0_avg[profit_idx] = n_assets
-# 
-# # Random weights to verify the efficient frontier
-# random_sigma, random_mu = random_weights(n_assets, means_rf, cov_rf, method = 'rand', dir_alpha = None, n_samples = 500)
-# dir_sigma, dir_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir_avg, n_samples = 500)
-# dir0_sigma, dir0_mu = random_weights(n_assets, means_rf, cov_rf, method = 'dirichlet', dir_alpha = dir0_avg, n_samples = 500)
-# =============================================================================
-
-#%% Plotting the efficient frontier
-plt.figure(figsize=(8, 6))
-#plt.plot(stds, mus, label='Efficient Frontier', marker='o', linestyle='-')
-plt.scatter(stds, mus, c=sh, cmap='viridis', label = 'efficient frontier')
-plt.colorbar(label='Sharpe Ratio')
-plt.plot(stds_rf, mus_rf, label='CML', linestyle='--')
-plt.plot(tangent_std, tangent_ret, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
-plt.plot(tangent_std_rf, tangent_ret_rf, marker='o', color='g', markersize=5, label = "TP with a risk-free asset")
-#plt.plot(std_range,cml, label = "CML", linestyle = "--")
-
-
-#plt.scatter(random_sigma, random_mu, s=0.1, color='g', label = "Random weights")
-#plt.scatter(dir_sigma, dir_mu, s=0.1, color='g', label = "Dirichlet with weight 30 on risk-free")
-#plt.scatter(dir0_sigma, dir0_mu, s=0.1, color='g', label = "Dirichlet with weight 30 on highest return")
-#plt.scatter(stdse, muse, c=she)
-#plt.plot(stdsa, musa, label='Efficient Frontier with ' + str(low_ESG) + ' <= ESG <= ' + str(up_ESG), marker='o', linestyle='-')
-plt.title('Markowitz Efficient Frontier and Capital Market Line')
-plt.xlabel('Portfolio Risk')
-plt.ylabel('Portfolio Return')
-plt.grid(True)
-plt.legend()
-plt.show()
-
-#%% Draw the maximum Sharpe ratio depending on the ESG constraints
-
-stds_c, mus_c, min_esg_list = [],[],[]
-
-# We consider only ESG constraints feasible for the given companies
-for lESG in np.arange(min(ESG_tv),max(ESG_tv) + 1,1):
-    stp, mup, _ = optim_sharpe_esg(means_rf, cov_rf, ESG_tv, rf, lESG, 7, num_points = 100)
-    stds_c.append(stp)
-    mus_c.append(mup)
-    min_esg_list.append(lESG)
+    def set_ESGs(self, ESGs):
+        self.ESGs = ESGs
+        
+    def set_ESG_pref(self, ESG_pref):
+        self.ESG_pref = ESG_pref
     
-sh_c = get_sharpe(mus_c, stds_c, rf)    
+    def mvESG(self, weights, risk_aversion):
+        return risk_aversion/2 * self.get_variance(weights) - self.get_return(weights) - self.ESG_pref(self.get_ESG(weights))
     
-plt.figure(figsize=(8, 6))
-plt.plot(min_esg_list, sh_c, label='Efficient Frontier', marker='o', linestyle='-')
-plt.title('ESG Constraints impact on Sharpe Ratio')
-plt.xlabel('ESG score')
-plt.ylabel('Sharpe ratio')
-plt.grid(True)
-plt.legend()
-plt.show()
+    def ESG_constraint(self, min_ESG):
+        return({'type': 'ineq', 'fun': lambda w: self.get_ESG(w) - min_ESG})
+    
+    def asset_constraint(self, bound, is_min = True):
+        if is_min:
+            return({'type': 'ineq', 'fun': lambda w: w - bound})
+        else:
+            return({'type': 'ineq', 'fun': lambda w: bound - w})
+        
+    def correspondance(self, weights):
+        association = pd.DataFrame({'Ticker': self.sectors['Tag'], 'Sector': self.sectors['Sector'], 'Weight': weights})
+        corres = association.groupby('Sector')['Weight'].sum()
+        return(corres)
+        
+    def sector_constraint(self, bound, is_min = True):
+        if is_min:          
+            return({'type': 'ineq', 'fun': lambda w: self.correspondance(w) - bound})
+        else:
+            return({'type': 'ineq', 'fun': lambda w: bound - self.correspondance(w)})
+    
+    def optimal_portfolio_ESG(self, min_ESG, input_bounds = None):
+        initial_weights = self.init_weights()
+        boundaries = self.bounds(input_bounds)
+        constraints = [self.weight_constraint(), self.ESG_constraint(min_ESG)]
+        
+        result = minimize(self.neg_sharpe, x0 = initial_weights, method='SLSQP', 
+                          constraints=constraints, 
+                          bounds=boundaries)
+        return result.x
+    
+    def efficient_frontier_ESG(self, low_ESG, up_ESG, interval = 1):
+        sharpes, ESG_list = [], []
+        for min_ESG in np.arange(low_ESG, up_ESG, interval):
+            weights = self.optimal_portfolio_ESG(min_ESG)
+            sharpes.append(self.get_sharpe(weights))
+            ESG_list.append(min_ESG)
+        return sharpes, ESG_list
+    
+    def diversification_ESG(self, low_ESG, up_ESG, interval = 1):
+        DRs, ESG_list = [], []
+        for min_ESG in np.arange(low_ESG, up_ESG, interval):
+            weights = self.optimal_portfolio_ESG(min_ESG)
+            DRs.append(self.diversification_ratio(weights))
+            ESG_list.append(min_ESG)
+        return DRs, ESG_list
+        
+    def find_efficient_assets(self, low_ESG, up_ESG, interval = 1, criterion = 0.001):
+        indices, ESG_list = [], []
+        sharpes = []
+        for min_ESG in np.arange(low_ESG, up_ESG, interval):
+            weights = self.optimal_portfolio_ESG(min_ESG)
+            sharpes.append(self.get_sharpe(weights))
+            new_indices = [i for i in range(len(weights)) if weights[i] > criterion]
+            ESG_list.append(min_ESG)
+            indices.extend(x for x in new_indices if x not in indices and x!= 0)
+        return np.sort(indices), ESG_list, sharpes        
+    
+    def plot_ESG_frontier(self,sharpes, ESG_list, savefig = True, score_source = None, new_fig = True, eng = True):
+        if new_fig:
+            self.new_figure()
+        if eng:
+            self.ax.plot(ESG_list, sharpes, label ='Maximum Sharpe ratio', marker='o', linestyle='-')
+        else:
+            self.ax.plot(ESG_list, sharpes, label ='Ratio de Sharpe optimal', marker='o', linestyle='-')
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+        if eng:
+            title = 'ESG constraints impact on Sharpe ratio with ' + str(n_risky) + ' risky assets'
+            if not(self.short_sales):
+                title += ", no short"
+            if score_source is not None:
+                title += ', ' + score_source + ' scores'
+            self.ax.set_title(title)
+            self.ax.set_xlabel('ESG minimal score')
+            self.ax.set_ylabel('Sharpe ratio')
+        else:
+            title = 'Impact des contraintes ESG sur le ratio de Sharpe, ' + str(n_risky) + ' actifs risqués'
+            if not(self.short_sales):
+                title += ", pas de short"
+            if score_source is not None:
+                title += ', scores ' + score_source 
+            self.ax.set_title(title)
+            self.ax.set_xlabel('Score ESG minimum')
+            self.ax.set_ylabel('Ratio de Sharpe')
+        self.ax.grid(True)
+        self.ax.legend()
+        
+        # Not the same figure anymore
+        self.existing_plot = False
+        
+        self.make_title_save("_ESG_Sharpe_", n_risky, savefig, score_source) 
+
+
+    def plot_constrained_frontier(self, risks, returns, marker_size = 1, ESG_min_level = 0, sector_min = 0, sector_max = 0, title = '_frontiers_', savefig = False, score_source = None, eng = True):
+        if eng:
+            lbl = 'EF'
+            if not(self.short_sales): 
+                lbl += ' no short'
+            if ESG_min_level:
+                lbl += ', min ESG of ' + str(ESG_min_level)
+            if sector_min:
+                lbl += ', min weight per sector ' + str(sector_min)
+            if sector_max:
+                lbl += ', max weight per sector ' + str(sector_max)
+        else:
+            lbl = 'FE'
+            if ESG_min_level:
+                lbl += ', rang ESG min de ' + str(ESG_min_level)
+            if sector_min:
+                lbl += ', poids secteur mini ' + str(sector_min)
+            if sector_max:
+                lbl += ', poids secteur maxi ' + str(sector_max)
+                
+        self.ax.plot(risks, returns, linestyle = '--', label = lbl)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+        
+        if not(self.existing_plot):
+            if eng:
+                ax_title = 'ESG Constraints impact on EF with ' + str(n_risky) + ' risky assets'
+                if score_source is not None:
+                    ax_title += ', ' + score_source + ' scores'
+                self.ax.set_title(ax_title)
+                self.ax.set_xlabel('Risk')
+                self.ax.set_ylabel('Return')
+            else:
+                ax_title = 'Impact des contraintes ESG sur la FE avec ' + str(n_risky) + ' actifs risqués'
+                if score_source is not None:
+                    ax_title += ', scores ' + score_source
+                self.ax.set_title(ax_title)
+                self.ax.set_xlabel('Risque')
+                self.ax.set_ylabel('Rendement')
+            self.ax.grid(True)
+            self.existing_plot = True
+            
+        self.ax.legend()
+
+        self.make_title_save(title, n_risky, savefig, score_source)
+        
+    def plot_general_frontier(self, risks, returns, fig_label, fig_title, xlabel, ylabel, marker_size = 1, new_fig = True, save = True):
+        if new_fig:
+            self.new_figure()
+        self.ax.plot(risks, returns, linestyle = '--', label = fig_label)
+        
+        if not(self.existing_plot):
+            self.ax.set_title(fig_title)
+            self.ax.set_xlabel(xlabel)
+            self.ax.set_ylabel(ylabel)
+            self.ax.grid(True)
+            self.existing_plot = True
+            
+        self.ax.legend()
+        
+        plt.savefig('Figures/' + fig_title + '.png')
+        
+    def plot_sectors_composition(self, min_ESG, save = False, source = None, min_visible = 0.01):
+        self.new_figure(fig_size = (12,6))
+        ordered_composition = self.sectors_composition.copy().sort_values(by = "Weight")
+        
+        # Only keep visible weights for the graph
+        valid_composition = ordered_composition[abs(ordered_composition['Weight']) >= min_visible]
+
+        sns.barplot(data = valid_composition, x = "Acronym", y = "Weight", hue = "Acronym", palette = "viridis", orient = 'v')
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            self.ax.set_title('Tangent portfolio sector composition, {n_risky} assets & ESG min of {min_ESG}'.format(n_risky = n_risky, min_ESG = min_ESG))
+            self.ax.set_xlabel('Sector')
+            self.ax.set_ylabel('Weight')
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        self.make_title_save("_CompositionESG{mini}_".format(mini = min_ESG), n_risky, save, source)
+           
+        
+    def plot_composition_change(self, low_constraint, up_constraint, save = False, source = None):
+        self.new_figure(fig_size = (12,6))
+        tangent_weights = self.optimal_portfolio_ESG(low_constraint)
+        self.set_sectors_composition(tangent_weights)
+        valid_composition = self.sectors_composition.copy()
+        #valid_composition = valid_composition[valid_composition['Weight'] != 0]
+        
+        tangent_weights = self.optimal_portfolio_ESG(up_constraint)
+        self.set_sectors_composition(tangent_weights)
+        valid_composition['New_Weight'] = self.sectors_composition['Weight']
+        valid_composition['Evolution'] = valid_composition['New_Weight'] - valid_composition['Weight']
+        
+        valid_composition = valid_composition.sort_values(by = "Evolution")
+        self.evolution = valid_composition
+        
+        # Only keep a sector if there is a noticeable change
+        valid_composition = valid_composition[abs(valid_composition['Evolution']) >= 0.01]
+        
+        sns.barplot(data = valid_composition, x = "Acronym", y = "Evolution", hue = "Acronym", palette = 'viridis', orient = 'v')
+        self.ax.set_title('Tangent weights evolution between a minimal ESG of {mini} and {maxi}'.format(mini = low_constraint, maxi = up_constraint))
+        self.ax.set_xlabel('Sector')
+        self.ax.set_ylabel('Weight')
+        self.ax.grid(True)
+        self.existing_plot = True
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+
+        self.make_title_save("_EndEvolution_{mini}to{maxi}_".format(mini = low_constraint, maxi = up_constraint), n_risky, save, source)
+     
+    def get_sectors_evolution(self, ESG_range, save = False, source = None):
+        
+        count, num_iters = 1, len(ESG_range)
+        sectors_weights = {}
+        
+        for min_ESG in ESG_range:
+            if not(count % 2):
+                print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
+            tangent_weights = self.optimal_portfolio_ESG(min_ESG)
+            self.set_sectors_composition(tangent_weights)
+            
+            valid_composition = self.sectors_composition.copy()
+            for weight, acronym in zip(valid_composition['Weight'],valid_composition['Acronym']):
+                if acronym not in sectors_weights:
+                    sectors_weights[acronym] = []
+                sectors_weights[acronym].append(weight)
+            count += 1
+        return(sectors_weights)
+    
+    def sectors_evolution_from_tickers(self, tickers_weights, sectors_df):
+        
+        def add_lists(list1, list2):
+            # Extend the shorter list with zeros
+            if len(list1) > len(list2):
+                list2.extend([0] * (len(list1) - len(list2)))
+            elif len(list2) > len(list1):
+                list1.extend([0] * (len(list2) - len(list1)))
+            # Return the element-wise sum of the two lists
+            return [x + y for x, y in zip(list1, list2)]
+        #sectors_weights = {}
+        matching_sectors = sectors_df[sectors_df['Tag'].isin(tickers_weights.keys())]
+        matching_sectors['Acronym'] = matching_sectors['Sector'].str[:4]
+        
+        ticker_acronym = dict(zip(matching_sectors['Tag'], matching_sectors['Acronym']))
+        
+        sectors_weights = defaultdict(list)
+
+        for ticker, weights in tickers_weights.items():
+            sector = ticker_acronym.get(ticker)
+            
+            
+            sectors_weights[sector] = add_lists(sectors_weights[sector], weights)
+
+        return(sectors_weights)
+    
+    
+    def get_evolution(self, ESG_range):
+        
+        count, num_iters = 1, len(ESG_range)
+        full_weights = {}
+        
+        for min_ESG in ESG_range:
+            if not(count % 2):
+                print('Iteration number {count} out of {num_iters}'.format(count = count, num_iters = num_iters))
+            tangent_weights = self.optimal_portfolio_ESG(min_ESG)
+            
+            for weight, ticker in zip(tangent_weights,self.tickers):
+                if ticker not in full_weights:
+                    full_weights[ticker] = []
+                full_weights[ticker].append(weight)
+            count += 1
+        return(full_weights)
+    
+    def complete_weights_lists(self, weights_dict):
+        max_length = max(len(values) for values in weights_dict.values())
+        for key, values in weights_dict.items():
+            while len(values) < max_length:
+                values.append(0)
+                
+        rifa_values = []
+        for i in range(max_length):
+            sum_values = sum(weights_dict[key][i] for key in weights_dict)
+            rifa_values.append(1 - sum_values)
+
+        weights_dict['RIFA'] = rifa_values
+        return weights_dict
+    
+    def plot_asset_evolution(self, ESG_range, sectors_df, save = False, source = None, min_weight = 0.001, assets_weights = None, xlabel = "ESG constraint", eng = True):
+        self.new_figure()
+        if assets_weights is None:
+            assets_weights = self.get_evolution(ESG_range, save, source)
+
+        matching_sectors = sectors_df[sectors_df['Tag'].isin(assets_weights.keys())]
+        matching_sectors['Acronym'] = matching_sectors['Sector'].str[:4]
+        
+        ticker_acronym = dict(zip(matching_sectors['Tag'], matching_sectors['Acronym']))
+        
+        lss2 = ['solid', 'dotted', 'dashed', 'dashdot']
+        i = 0
+        for ticker, weights in assets_weights.items():
+            acronym = ticker_acronym.get(ticker)
+            if max(weights) >= min_weight:
+                lines = self.ax.plot(ESG_range[:len(weights)], weights, label=ticker + ' (' + acronym + ')')
+                lines[0].set_linestyle(lss2[i//10])
+                i+=1
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+        
+        figtitle = 'Asset weights (>= ' + str(min_weight) + ') depending on the ESG constraint'
+        if not(eng):
+            figtitle = "Poids d'actifs (>= " + str(min_weight) + ') selon la contrainte ESG'
+        if source is not None:
+            figtitle += ', ' + source
+        self.ax.set_title(figtitle)
+        self.ax.set_xlabel(xlabel)
+        if eng:
+            self.ax.set_ylabel('Asset weight')
+        else:
+            self.ax.set_ylabel("Poids d'actifs")
+        self.ax.legend(bbox_to_anchor=(1.3, 1))
+        self.make_title_save("_AssetEvolution_{mini}to{maxi}_".format(mini = round(min(ESG_range),2), maxi = round(max(ESG_range),2)), n_risky, save, source, bbox_param = 'tight')
+    
+        
+    def plot_sector_evolution(self, ESG_range, save = False, source = None, min_weight = 0.01, sectors_weights = None, xlabel = "ESG constraint", eng = True):
+        self.new_figure()
+        if sectors_weights is None:
+            sectors_weights = self.get_sectors_evolution(ESG_range, save, source)
+        
+        for sector, weights in sectors_weights.items():
+            if max(weights) >= min_weight:
+                self.ax.plot(ESG_range[:len(weights)], weights, label=sector)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+        
+        axtitle = 'Sector weights (>= ' + str(min_weight) + ') depending on the ESG constraint'
+        if not(eng):
+            axtitle = 'Poids sectoriels (>= ' + str(min_weight) + ') selon la contrainte ESG'
+        if source is not None:
+            axtitle += ', ' + source
+        self.ax.set_title(axtitle)
+        self.ax.set_xlabel(xlabel)
+        if eng:
+            self.ax.set_ylabel('Sector weight')
+        else:
+            self.ax.set_ylabel('Poids sectoriel')
+        self.ax.legend()
+        self.make_title_save("_Evolution_{mini}to{maxi}_".format(mini = min(ESG_range), maxi = max(ESG_range)), n_risky, save, source)
+        
+    def plot_sharpe_exclusion(self, sharpes, threshold_list, save, source, eng = True, esg_levels = False, esgs = None):      
+        self.ax.plot(threshold_list, sharpes, label = source)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            if eng:
+                self.ax.set_title('Sharpe ratio depending on the exclusion of assets')
+                self.ax.set_xlabel('Number of worst ESG stocks excluded')
+                self.ax.set_ylabel('Sharpe ratio')
+            else:
+                self.ax.set_title("Ratio de Sharpe du portefeuille selon le nombre d'actifs exclus")
+                self.ax.set_xlabel("Nombre d'actifs exclus")
+                self.ax.set_ylabel('Ratio de Sharpe')
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        if esg_levels:
+            self.ax2 = self.ax.twiny()
+            #self.ax2.set_xticks(self.ax.get_xticks())
+            self.ax2.set_xbound(self.ax.get_xbound())
+            self.ax2.set_xticklabels(esgs)
+            self.ax2.set_xlabel("ESG du portefeuille optimal")
+        
+        self.ax.legend()
+        self.make_title_save("_Sharpe_Exclusion_ESG_", n_risky, save) 
+    
+    def plot_esg_exclusion(self, ESGs, threshold_list, save, source, eng = True):      
+        self.ax.plot(threshold_list, ESGs, label = source)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            if eng:
+                self.ax.set_title('Portfolio ESG depending on the exclusion of assets')
+                self.ax.set_xlabel('Number of worst ESG stocks excluded')
+                self.ax.set_ylabel('ESG')
+            else:
+                self.ax.set_title("ESG du portefeuille selon le nombre d'actifs")
+                self.ax.set_xlabel("Nombre d'actifs exclus")
+                self.ax.set_ylabel('ESG')
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        self.ax.legend()
+        self.make_title_save("_ESG_Exclusion_", n_risky, save) 
+        
+    def plot_esg_exclusions(self, ESGs_list, threshold_list, save, eng = True, gaussian = False):
+        if eng:
+            self.ax.plot(threshold_list, ESGs_list[2], label = 'Mean')
+            self.ax.fill_between(threshold_list, ESGs_list[0], ESGs_list[1], alpha = .25, color = 'g', label = 'Min-Max ESG')
+        else:
+            if gaussian:
+                self.ax.plot(threshold_list, ESGs_list[0], label = 'ESG du GMM')
+                self.ax.fill_between(threshold_list, ESGs_list[1][:len(ESGs_list[0])], ESGs_list[0], alpha = .25, color = 'g', label = 'ESG minimum à 95% de confiance')
+            else:
+                self.ax.plot(threshold_list, ESGs_list[2], label = 'Moyenne')
+                self.ax.fill_between(threshold_list, ESGs_list[0], ESGs_list[1], alpha = .25, color = 'g', label = 'ESG min-max')
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            if eng:
+                self.ax.set_title('Portfolio ESG depending on the exclusion of assets')
+                self.ax.set_xlabel('Number of worst ESG stocks excluded')
+                self.ax.set_ylabel('ESG')
+            else:
+                self.ax.set_title("ESG du portefeuille et borne inférieure sur l'ESG selon le nombre d'actifs")
+                self.ax.set_xlabel("Nombre d'actifs exclus")
+                self.ax.set_ylabel('ESG')
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        #self.ax.xaxis.set_major_formatter(PercentFormatter(xmax = 10))
+        self.ax.xaxis.set_major_formatter(FuncFormatter(lambda x,y: str(int(x)) + "/10"))
+        self.ax.legend(loc = 'upper left')
+        self.make_title_save("_ESG_Exclusion_", n_risky, save) 
+    
+    def plot_sharpe_speed(self, sharpes, ESG_range, save, source, eng = True):      
+        speed = np.gradient(sharpes, ESG_range)
+        self.ax.plot(ESG_range, speed, label = source)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            if eng:
+                self.ax.set_title('Speed of the Sharpe ratio depending on the ESG constraint')
+                self.ax.set_xlabel('ESG constraint')
+                self.ax.set_ylabel('Speed')
+            else:
+                self.ax.set_title('Vitesse du ratio de Sharpe selon la contrainte ESG')
+                self.ax.set_xlabel('Contrainte ESG')
+                self.ax.set_ylabel('Vitesse')
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        self.ax.legend()
+        self.make_title_save("_Sharpe_Speed_", n_risky, save)
+        
+    def plot_sharpe(self, sharpes, ESG_range, save, source, eng = True):      
+        self.ax.plot(ESG_range, sharpes, label = source)
+        
+        n_risky = len(self.mu)
+        if self.rf_params:
+            n_risky -= 1
+            
+        if not(self.existing_plot):
+            if eng:
+                self.ax.set_title('Sharpe ratio depending on the ESG constraint')
+                self.ax.set_xlabel('ESG constraint')
+                self.ax.set_ylabel('Sharpe')
+            else:
+                self.ax.set_title('Evolution du ratio de Sharpe selon la contrainte ESG')
+                self.ax.set_xlabel('Contrainte ESG')
+                self.ax.set_ylabel('Ratio de Sharpe')
+            
+            self.ax.grid(True)
+            self.existing_plot = True
+        
+        self.ax.legend()
+        self.make_title_save("_Sharpe_", n_risky, save)
+        
+        

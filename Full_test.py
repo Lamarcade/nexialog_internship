@@ -40,4 +40,4 @@ Te.combine_TV_lists()
 
 #%%
 Te.cluster_uncertainty()
-Te.sharpe_sector_exclusion(esg_bound = True)
+Te.sharpe_sector_exclusion(gmm_esg_bound = True)

@@ -261,7 +261,7 @@ class Tester:
 
         return(spearmans)
     
-    def sharpe_sector_exclusion(self, sharpe = True, esg_bound = False):
+    def sharpe_sector_exclusion(self, sharpe = True, gmm_esg_bound = False):
         
         complete_sectors = self.sectors_list.copy()
         complete_sectors.loc[-1] = ['RIFA', 'RISK Risk-Free Asset']
@@ -273,7 +273,7 @@ class Tester:
         #% Sharpes with exclusion
         if sharpe:
             sharpes_t = [[] for i in range(p)]
-            if esg_bound:
+            if gmm_esg_bound:
                 ESGs = [[] for i in range(p)]
         else:
             weights_agencies = [{} for i in range(p)]
@@ -333,7 +333,7 @@ class Tester:
                 weights_t = xpf.tangent_portfolio()
                 if sharpe:
                     sharpes_t[i].append(xpf.get_sharpe(weights_t))
-                    if esg_bound:
+                    if gmm_esg_bound:
                         ESGs[i].append(xpf.get_ESG(weights_t))
                 else:                             
                     for weight, ticker in zip(weights_t,xpf.tickers):
@@ -352,7 +352,7 @@ class Tester:
                 if i == (p-1):
                     save = True
                 xpf.plot_sharpe_exclusion(sharpes_t[i], range(len(sharpes_t[i])), save, agency + ', ' + str(len(sharpes_t[i])) + ' actifs ESG-efficients', eng = False)   
-            if esg_bound:
+            if gmm_esg_bound:
                 save = True
                 xpf.new_figure()
                 xpf.plot_esg_exclusions(ESGs, range(len(ESGs[0])), save, eng = False, gaussian = True) 

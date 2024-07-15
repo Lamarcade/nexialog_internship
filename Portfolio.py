@@ -14,6 +14,18 @@ import pandas as pd
 
 class Portfolio:
     def __init__(self,mu,sigma, rf, short_sales = True, sectors = None, tickers = None, rf_params = False):
+        """
+        Initializes a Portfolio instance.
+
+        Parameters:
+            mu (array-like): Expected returns of the assets.
+            sigma (array-like): Covariance matrix of the asset returns.
+            rf (float): Risk-free rate.
+            short_sales (bool, optional): If True, allows short selling. Defaults to True.
+            sectors (DataFrame, optional): DataFrame containing sector information. Defaults to None.
+            tickers (list, optional): List of asset tickers. Defaults to None.
+            rf_params (bool, optional): If True, includes a risk-free asset. Defaults to False.
+        """
         self.mu = mu
         self.sigma = sigma
         self.rf = rf
@@ -29,6 +41,12 @@ class Portfolio:
         self.tickers = tickers
         
     def risk_free_stats(self):
+        """
+        Adjusts the portfolio statistics to include a risk-free asset.
+
+        Returns:
+            Portfolio: Updated Portfolio instance.
+        """
         if not(self.rf_params):
             self.mu = np.insert(self.mu,0,self.rf)
             self.n = self.n+1
@@ -44,23 +62,73 @@ class Portfolio:
             return self
         
     def change_short_sales(self):
+        """
+        Toggles the short selling constraint.
+
+        Returns:
+            Portfolio: Updated Portfolio instance.
+        """
         self.short_sales = not(self.short_sales)
         return self 
     
     def get_variance(self, weights):
+        """
+        Computes the variance of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Variance of the portfolio.
+        """
         return weights.T.dot(self.sigma).dot(weights)
     
     def get_risk(self, weights):
+        """
+        Computes the risk (standard deviation) of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Risk of the portfolio.
+        """
         return np.sqrt(weights.T.dot(self.sigma).dot(weights))
     
     def get_return(self, weights):
+        """
+        Computes the return of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Return of the portfolio.
+        """
         return weights.T.dot(self.mu)
     
     def get_sharpe(self, weights):
+        """
+        Computes the Sharpe ratio of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Sharpe ratio of the portfolio.
+        """
         return ((self.get_return(weights) - self.rf)/ self.get_risk(weights))
     
     def set_sectors_composition(self,weights):
-        
+        """
+        Sets the sector composition of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Raises:
+            AttributeError: If sectors are not defined.
+        """    
         if self.sectors is None:
             raise AttributeError('No sectors defined') 
             
@@ -80,31 +148,99 @@ class Portfolio:
         self.sectors_composition = composition
     
     def neg_mean_variance(self, weights, gamma):
-        # Negative mean-variance objective
+        """
+        Negative mean-variance objective function that has to be minimized.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+            gamma (float): Risk tolerance coefficient.
+
+        Returns:
+            float: Negative mean-variance value.
+        """
         return 1/2 * self.get_variance(weights) - gamma * self.get_return(weights)
         
     def neg_sharpe(self, weights):
+        """
+        Negative Sharpe ratio objective function.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Negative Sharpe ratio value.
+        """
         return (- (self.get_return(weights) - self.rf)/ self.get_risk(weights))
     
     def neg_return(self,weights):
+        """
+        Negative return objective function.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Negative return value.
+        """
         return - weights.T.dot(self.mu)
     
     def diversification_ratio(self, weights):
-        # Diversification ratio of the portfolio
+        """
+        Computes the diversification ratio of the portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Diversification ratio of the portfolio.
+        """
         weighted_vols = weights.dot(np.sqrt(np.diag(self.sigma)))
         return weighted_vols/ self.get_risk(weights)
     
     def weight_constraint(self):
+        """
+        Creates a weight constraint for the optimization.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """
         return({'type': 'eq', 'fun': lambda w: sum(w)-1})
     
     def risk_constraint(self, max_risk):
+        """
+        Creates a risk constraint for the optimization.
+
+        Parameters:
+            max_risk (float): Maximum risk allowed.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """
         return({'type': 'ineq', 'fun': lambda w: max_risk - self.get_risk(w)})
     
     def return_constraint(self, min_return):
+        """
+        Creates a return constraint for the optimization.
+
+        Parameters:
+            min_return (float): Minimum return required.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """
         return({'type': 'ineq', 'fun': lambda w: self.get_return(w) - min_return})
         #return(LinearConstraint(self.mu, lb = min_return, ub = np.inf))
     
     def bounds(self, input_bounds = None):
+        """
+        Creates bounds for the asset weights.
+
+        Parameters:
+            input_bounds (list, optional): List of tuples specifying the bounds. Defaults to None.
+
+        Returns:
+            list or None: List of bounds or None if short selling is allowed.
+        """
         if self.short_sales:
             bounds = None
         elif input_bounds is None:
@@ -114,11 +250,31 @@ class Portfolio:
         return bounds
     
     def init_weights(self):
+        """
+        Initializes the weights for the portfolio using equal weights.
+
+        Returns:
+            array: Initial weights.
+        """
         return(np.ones(self.n)/self.n)
     
     def optimal_portfolio(self, method = 1, gamma = None, max_risk = None, 
                           min_return = None, input_bounds = None,
                           new_constraints = None):
+        """
+        Calculates the optimal portfolio based on the specified method.
+
+        Parameters:
+            method (int, optional): Optimization method. Defaults to 1. 1 is for mean variance, 2 for maximum volatility, 3 for minimum return.
+            gamma (float, optional): Risk tolerance coefficient. Defaults to None.
+            max_risk (float, optional): Maximum risk allowed. Defaults to None.
+            min_return (float, optional): Minimum return required. Defaults to None.
+            input_bounds (list, optional): List of bounds for the weights. Defaults to None.
+            new_constraints (list, optional): Additional constraints. Defaults to None.
+
+        Returns:
+            array: Optimal weights.
+        """
         initial_weights = self.init_weights()
         boundaries = self.bounds(input_bounds)
         constraints = [self.weight_constraint()]
@@ -154,6 +310,23 @@ class Portfolio:
                            min_ret = 0.003, max_ret = 0.08,
                            new_constraints = None
                            ):
+        """
+        Calculate the efficient frontier.
+
+        Parameters:
+        method (int): Optimization method. 1 for mean-variance, 2 for max volatility, 3 for min return.
+        n_points (int): Number of points to plot on the efficient frontier.
+        min_risk_tol (float): Minimum risk tolerance for method 1.
+        max_risk_tol (float): Maximum risk tolerance for method 1.
+        min_std (float): Minimum standard deviation for method 2.
+        max_std (float): Maximum standard deviation for method 2.
+        min_ret (float): Minimum return for method 3.
+        max_ret (float): Maximum return for method 3.
+        new_constraints (list): Additional constraints for optimization.
+
+        Returns:
+        tuple: Lists of portfolio risks, returns, and Sharpe ratios.
+        """
         risks, returns, sharpes = [],[], []
 
         if method == 3:
@@ -184,6 +357,12 @@ class Portfolio:
         return risks, returns, sharpes
     
     def tangent_portfolio(self):
+        """
+        Calculate the tangent portfolio.
+
+        Returns:
+        np.ndarray: Weights of the tangent portfolio.
+        """
         initial_weights = self.init_weights()
         constraint = self.weight_constraint()
         boundaries = self.bounds()
@@ -192,12 +371,32 @@ class Portfolio:
             return(result.x)  
     
     def capital_market_line(self,risk_range):
+        """
+        Calculate the Capital Market Line (CML).
+
+        Parameters:
+        risk_range (np.ndarray): Range of risks.
+
+        Returns:
+        np.ndarray: Returns corresponding to the risks on the CML.
+        """
         tangent_weights = self.tangent_portfolio()
         tangent_return = self.get_return(tangent_weights)
         tangent_risk = np.sqrt(self.get_variance(tangent_weights))
         return(self.rf + risk_range*(tangent_return - self.rf)/ tangent_risk)
     
     def random_weights(self, method = 'rand', dir_alpha = None, n_samples = 500):
+        """
+        Generate random portfolio weights.
+
+        Parameters:
+        method (str): Method for generating weights ('rand' or 'dirichlet').
+        dir_alpha (np.ndarray): Alpha parameter for Dirichlet distribution.
+        n_samples (int): Number of samples.
+
+        Returns:
+        tuple: Random portfolio risks and returns.
+        """
         weights = np.zeros((n_samples, self.n))
         if method == 'Dirichlet' or method == 'dirichlet':
             if len(dir_alpha) != (self.n):
@@ -214,6 +413,16 @@ class Portfolio:
         return random_sigma, random_mu
     
     def new_figure(self, fig_size = (8,6), four_plots = False):
+        """
+        Create a new figure for plotting.
+
+        Parameters:
+        fig_size (tuple): Size of the figure.
+        four_plots (bool): If True, create a 2x2 subplot.
+
+        Returns:
+        None
+        """
         sns.set_theme()
         if four_plots:
             self.fig, self.ax = plt.subplots((2,2), figsize=fig_size)
@@ -222,6 +431,19 @@ class Portfolio:
         self.existing_plot = False
         
     def make_title_save(self, figtitle, n_risky, savefig = False, score_source = None, bbox_param = None):
+        """
+        Create a title and save the figure.
+
+        Parameters:
+        figtitle (str): Title of the figure.
+        n_risky (int): Number of risky assets.
+        savefig (bool): If True, save the figure.
+        score_source (str): Source of the score.
+        bbox_param (dict): Parameters for bounding box.
+
+        Returns:
+        None
+        """
         if score_source is not None:
             title = score_source + figtitle + str(n_risky)
         else:
@@ -238,6 +460,19 @@ class Portfolio:
                 plt.savefig('Figures/' + title + '.png', bbox_inches = 'tight')  
         
     def plot_frontier(self, rf_included, risks, returns, sharpes = None, marker_size = 1):
+        """
+        Plot the efficient frontier.
+
+        Parameters:
+        rf_included (bool): If True, include the risk-free asset.
+        risks (list): List of portfolio risks.
+        returns (list): List of portfolio returns.
+        sharpes (list): List of Sharpe ratios.
+        marker_size (int): Size of the markers.
+
+        Returns:
+        None
+        """
         if rf_included:
             if self.short_sales:
                 self.ax.plot(risks, returns, linestyle = '--', label = 'CML')
@@ -263,6 +498,16 @@ class Portfolio:
         plt.savefig('Figures/' + figtitle + '.png')
         
     def plot_tangent(self, tangent_risk, tangent_return):
+        """
+        Plot the tangent portfolio on the efficient frontier.
+
+        Parameters:
+        tangent_risk (float): Risk of the tangent portfolio.
+        tangent_return (float): Return of the tangent portfolio.
+
+        Returns:
+        None
+        """
         self.ax.plot(tangent_risk, tangent_return, marker='o', color='r', markersize=5, label = "Tangent Portfolio")
         
         self.ax.legend()

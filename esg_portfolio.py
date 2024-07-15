@@ -16,10 +16,32 @@ from matplotlib.ticker import FuncFormatter
 
 class ESG_Portfolio(Portfolio):   
     def __init__(self, mu,sigma, rf, ESGs, short_sales = True, sectors = None, tickers = None, rf_params = False):
+        """
+        Initializes an ESG_Portfolio instance.
+
+        Parameters:
+            mu (array-like): Expected returns of the assets.
+            sigma (array-like): Covariance matrix of the asset returns.
+            rf (float): Risk-free rate.
+            ESGs (array-like): ESG scores for the assets.
+            short_sales (bool, optional): If True, allows short selling. Defaults to True.
+            sectors (DataFrame, optional): DataFrame containing sector information. Defaults to None.
+            tickers (list, optional): List of asset tickers. Defaults to None.
+            rf_params (bool, optional): If True, includes a risk-free asset. Defaults to False.
+        """        
         super().__init__(mu,sigma, rf, short_sales, sectors, tickers, rf_params)
         self.ESGs = ESGs
         
     def get_ESG(self, weights):
+        """
+        Compute the ESG score of a portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            float: Weighted ESG score of the portfolio.
+        """
         if self.rf_params:
             # The risk-free asset does not have an ESG score
             if weights[0] < 0.99:
@@ -30,35 +52,105 @@ class ESG_Portfolio(Portfolio):
             return weights.dot(self.ESGs) / sum(weights)
 
     def set_ESGs(self, ESGs):
+        """
+        Set the ESG scores for the assets.
+
+        Parameters:
+            ESGs (array-like): ESG scores.
+        """        
         self.ESGs = ESGs
         
     def set_ESG_pref(self, ESG_pref):
+        """
+        Set the ESG preference function (see Pedersen 2022).
+
+        Parameters:
+            ESG_pref (function): ESG preference function.
+        """        
         self.ESG_pref = ESG_pref
     
     def mvESG(self, weights, risk_aversion):
+        """
+        Calculate the mean-variance ESG utility of a portfolio.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+            risk_aversion (float): Risk aversion coefficient.
+
+        Returns:
+            float: Mean-variance ESG utility value.
+        """
         return risk_aversion/2 * self.get_variance(weights) - self.get_return(weights) - self.ESG_pref(self.get_ESG(weights))
     
     def ESG_constraint(self, min_ESG):
+        """
+        Create an ESG constraint for the optimization.
+
+        Parameters:
+            min_ESG (float): Minimum ESG score required.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """        
         return({'type': 'ineq', 'fun': lambda w: self.get_ESG(w) - min_ESG})
     
     def asset_constraint(self, bound, is_min = True):
+        """
+        Create an asset weight constraint for the optimization.
+
+        Parameters:
+            bound (float): Constraint bound.
+            is_min (bool, optional): If False, applies a maximum weight constraint. Defaults to True.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """
         if is_min:
             return({'type': 'ineq', 'fun': lambda w: w - bound})
         else:
             return({'type': 'ineq', 'fun': lambda w: bound - w})
         
     def correspondance(self, weights):
+        """
+        Calculate the sector weights given asset weights.
+
+        Parameters:
+            weights (array-like): Asset weights in the portfolio.
+
+        Returns:
+            DataFrame: Sector weight correspondance.
+        """
         association = pd.DataFrame({'Ticker': self.sectors['Tag'], 'Sector': self.sectors['Sector'], 'Weight': weights})
         corres = association.groupby('Sector')['Weight'].sum()
         return(corres)
         
     def sector_constraint(self, bound, is_min = True):
+        """
+        Create a sector constraint for the optimization.
+
+        Parameters:
+            bound (float): Constraint bound.
+            is_min (bool, optional): If False, applies a maximum weight constraint. Defaults to True.
+
+        Returns:
+            dict: Constraint dictionary for optimization.
+        """
         if is_min:          
             return({'type': 'ineq', 'fun': lambda w: self.correspondance(w) - bound})
         else:
             return({'type': 'ineq', 'fun': lambda w: bound - self.correspondance(w)})
     
     def optimal_portfolio_ESG(self, min_ESG, input_bounds = None):
+        """
+        Calculate the optimal portfolio (Sharpe maximizer) for the given ESG constraints.
+
+        Parameters:
+            min_ESG (float): Minimum portfolio ESG score required.
+            input_bounds (list, optional): Bounds for the weights. Defaults to None.
+
+        Returns:
+            array: Optimal weights.
+        """        
         initial_weights = self.init_weights()
         boundaries = self.bounds(input_bounds)
         constraints = [self.weight_constraint(), self.ESG_constraint(min_ESG)]
@@ -69,6 +161,17 @@ class ESG_Portfolio(Portfolio):
         return result.x
     
     def efficient_frontier_ESG(self, low_ESG, up_ESG, interval = 1):
+        """
+        Calculate the efficient frontier for the given ESG constraints.
+
+        Parameters:
+            low_ESG (float): Lower bound for ESG scores.
+            up_ESG (float): Upper bound for ESG scores.
+            interval (int, optional): Step size for ESG scores. Defaults to 1.
+
+        Returns:
+            tuple: Sharpe ratios and ESG scores.
+        """        
         sharpes, ESG_list = [], []
         for min_ESG in np.arange(low_ESG, up_ESG, interval):
             weights = self.optimal_portfolio_ESG(min_ESG)
@@ -77,6 +180,17 @@ class ESG_Portfolio(Portfolio):
         return sharpes, ESG_list
     
     def diversification_ESG(self, low_ESG, up_ESG, interval = 1):
+        """
+        Calculate the diversification ratio for given ESG constraints.
+
+        Parameters:
+            low_ESG (float): Lower bound for ESG scores.
+            up_ESG (float): Upper bound for ESG scores.
+            interval (int, optional): Step size for ESG scores. Defaults to 1.
+
+        Returns:
+            tuple: Diversification ratios and ESG scores.
+        """
         DRs, ESG_list = [], []
         for min_ESG in np.arange(low_ESG, up_ESG, interval):
             weights = self.optimal_portfolio_ESG(min_ESG)
@@ -85,6 +199,18 @@ class ESG_Portfolio(Portfolio):
         return DRs, ESG_list
         
     def find_efficient_assets(self, low_ESG, up_ESG, interval = 1, criterion = 0.001):
+        """
+        Find the efficient assets for given ESG constraints.
+
+        Parameters:
+            low_ESG (float): Lower bound for ESG scores.
+            up_ESG (float): Upper bound for ESG scores.
+            interval (int, optional): Step size for ESG scores. Defaults to 1.
+            criterion (float, optional): Minimum weight criterion. Defaults to 0.001.
+
+        Returns:
+            tuple: Indices of efficient assets, ESG scores, and Sharpe ratios.
+        """
         indices, ESG_list = [], []
         sharpes = []
         for min_ESG in np.arange(low_ESG, up_ESG, interval):
@@ -96,6 +222,17 @@ class ESG_Portfolio(Portfolio):
         return np.sort(indices), ESG_list, sharpes        
     
     def plot_ESG_frontier(self,sharpes, ESG_list, savefig = True, score_source = None, new_fig = True, eng = True):
+        """
+        Plot the Sharpe-ESG frontier.
+
+        Parameters:
+            sharpes (array-like): Sharpe ratios.
+            ESG_list (array-like): ESG scores.
+            savefig (bool, optional): If True, saves the figure. Defaults to True.
+            score_source (str, optional): Source of the ESG scores. Defaults to None.
+            new_fig (bool, optional): If True, creates a new figure. Defaults to True.
+            eng (bool, optional): If True, uses English labels. Defaults to True.
+        """
         if new_fig:
             self.new_figure()
         if eng:
@@ -133,6 +270,21 @@ class ESG_Portfolio(Portfolio):
 
 
     def plot_constrained_frontier(self, risks, returns, marker_size = 1, ESG_min_level = 0, sector_min = 0, sector_max = 0, title = '_frontiers_', savefig = False, score_source = None, eng = True):
+        """
+        Plot the efficient frontier for given constraints.
+
+        Parameters:
+            risks (array-like): Array of portfolio risks.
+            returns (array-like): Array of portfolio returns.
+            marker_size (int, optional): Size of the marker for the plot. Defaults to 1.
+            ESG_min_level (float, optional): Minimum ESG level constraint. Defaults to 0.
+            sector_min (float, optional): Minimum sector weight constraint. Defaults to 0.
+            sector_max (float, optional): Maximum sector weight constraint. Defaults to 0.
+            title (str, optional): Title for saving the figure. Defaults to '_frontiers_'.
+            savefig (bool, optional): If True, saves the figure. Defaults to False.
+            score_source (str, optional): Source of the ESG scores. Defaults to None.
+            eng (bool, optional): If True, uses English labels. Defaults to True.
+        """
         if eng:
             lbl = 'EF'
             if not(self.short_sales): 
@@ -181,6 +333,20 @@ class ESG_Portfolio(Portfolio):
         self.make_title_save(title, n_risky, savefig, score_source)
         
     def plot_general_frontier(self, risks, returns, fig_label, fig_title, xlabel, ylabel, marker_size = 1, new_fig = True, save = True):
+        """
+        Plot a general frontier.
+
+        Parameters:
+            risks (array-like): Array of portfolio risks (or other statistics).
+            returns (array-like): Array of portfolio returns (or other statistics).
+            fig_label (str): Label for the plot.
+            fig_title (str): Title of the figure.
+            xlabel (str): Label for the x-axis.
+            ylabel (str): Label for the y-axis.
+            marker_size (int, optional): Size of the marker for the plot. Defaults to 1.
+            new_fig (bool, optional): If True, creates a new figure. Defaults to True.
+            save (bool, optional): If True, saves the figure. Defaults to True.
+        """
         if new_fig:
             self.new_figure()
         self.ax.plot(risks, returns, linestyle = '--', label = fig_label)
@@ -197,6 +363,15 @@ class ESG_Portfolio(Portfolio):
         plt.savefig('Figures/' + fig_title + '.png')
         
     def plot_sectors_composition(self, min_ESG, save = False, source = None, min_visible = 0.01):
+        """
+        Plot the sector composition of the tangent portfolio.
+
+        Parameters:
+            min_ESG (float): Minimum ESG score.
+            save (bool, optional): If True, saves the figure. Defaults to False.
+            source (str, optional): Source of the ESG scores. Defaults to None.
+            min_visible (float, optional): Minimum weight to be visible in the plot. Defaults to 0.01.
+        """
         self.new_figure(fig_size = (12,6))
         ordered_composition = self.sectors_composition.copy().sort_values(by = "Weight")
         
@@ -220,6 +395,15 @@ class ESG_Portfolio(Portfolio):
            
         
     def plot_composition_change(self, low_constraint, up_constraint, save = False, source = None):
+        """
+        Plot the change in sector composition between two ESG constraints.
+
+        Parameters:
+            low_constraint (float): Lower ESG constraint.
+            up_constraint (float): Upper ESG constraint.
+            save (bool, optional): If True, saves the figure. Defaults to False.
+            source (str, optional): Source of the ESG scores. Defaults to None.
+        """
         self.new_figure(fig_size = (12,6))
         tangent_weights = self.optimal_portfolio_ESG(low_constraint)
         self.set_sectors_composition(tangent_weights)
@@ -251,7 +435,17 @@ class ESG_Portfolio(Portfolio):
         self.make_title_save("_EndEvolution_{mini}to{maxi}_".format(mini = low_constraint, maxi = up_constraint), n_risky, save, source)
      
     def get_sectors_evolution(self, ESG_range, save = False, source = None):
-        
+        """
+        Get the evolution of sector weights over a range of ESG constraints.
+
+        Parameters:
+            ESG_range (array-like): Array of ESG constraint values.
+            save (bool, optional): If True, saves the figure. Defaults to False.
+            source (str, optional): Source of the ESG scores. Defaults to None.
+
+        Returns:
+            dict: Dictionary of sector weights over the ESG range.
+        """
         count, num_iters = 1, len(ESG_range)
         sectors_weights = {}
         
@@ -270,7 +464,16 @@ class ESG_Portfolio(Portfolio):
         return(sectors_weights)
     
     def sectors_evolution_from_tickers(self, tickers_weights, sectors_df):
-        
+        """
+        Calculate the sector weights from tickers' weights.
+
+        Parameters:
+            tickers_weights (dict): Dictionary of tickers' weights.
+            sectors_df (DataFrame): DataFrame containing tickers and their respective sectors.
+
+        Returns:
+            dict: Dictionary of sector weights.
+        """       
         def add_lists(list1, list2):
             # Extend the shorter list with zeros
             if len(list1) > len(list2):
@@ -297,7 +500,16 @@ class ESG_Portfolio(Portfolio):
     
     
     def get_evolution(self, ESG_range):
-        
+        """
+        Compute the evolution of asset weights over a range of ESG constraints.
+
+        Parameters:
+            ESG_range (list of float): A list of ESG constraint values to iterate over.
+
+        Returns:
+            dict: A dictionary where keys are asset tickers and values are lists of weights 
+                corresponding to each ESG constraint in ESG_range.
+        """  
         count, num_iters = 1, len(ESG_range)
         full_weights = {}
         
@@ -314,6 +526,17 @@ class ESG_Portfolio(Portfolio):
         return(full_weights)
     
     def complete_weights_lists(self, weights_dict):
+        """
+        Ensure all weight lists in the weights dictionary have the same length by appending zeros 
+        where necessary. Also calculates and appends the risk-free asset values.
+
+        Parameters:
+            weights_dict (dict): A dictionary where keys are asset tickers and values are lists of weights.
+
+        Returns:
+            dict: The input dictionary with all lists extended to the same length and a new entry 
+                for risk-free asset values.
+        """
         max_length = max(len(values) for values in weights_dict.values())
         for key, values in weights_dict.items():
             while len(values) < max_length:
@@ -328,6 +551,19 @@ class ESG_Portfolio(Portfolio):
         return weights_dict
     
     def plot_asset_evolution(self, ESG_range, sectors_df, save = False, source = None, min_weight = 0.001, assets_weights = None, xlabel = "ESG constraint", eng = True):
+        """
+        Plot the evolution of asset weights over a range of ESG constraints.
+
+        Parameters:
+            ESG_range (list of float): A list of ESG constraint values.
+            sectors_df (DataFrame): DataFrame containing sector information for assets.
+            save (bool, optional): Whether to save the plot. Default is False.
+            source (str, optional): ESG provider for the plot title. Default is None.
+            min_weight (float, optional): Minimum weight threshold for assets to be included in the plot. Default is 0.001.
+            assets_weights (dict, optional): Pre-computed asset weights. If None, weights will be computed. Default is None.
+            xlabel (str, optional): Label for the x-axis. Default is "ESG constraint".
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+        """
         self.new_figure()
         if assets_weights is None:
             assets_weights = self.get_evolution(ESG_range, save, source)
@@ -366,6 +602,18 @@ class ESG_Portfolio(Portfolio):
     
         
     def plot_sector_evolution(self, ESG_range, save = False, source = None, min_weight = 0.01, sectors_weights = None, xlabel = "ESG constraint", eng = True):
+        """
+        Plot the evolution of sector weights over a range of ESG constraints.
+
+        Parameters:
+            ESG_range (list of float): A list of ESG constraint values.
+            save (bool, optional): Whether to save the plot. Default is False.
+            source (str, optional): ESG provider for the plot title. Default is None.
+            min_weight (float, optional): Minimum weight threshold for sectors to be included in the plot. Default is 0.01.
+            sectors_weights (dict, optional): Pre-computed sector weights. If None, weights will be computed. Default is None.
+            xlabel (str, optional): Label for the x-axis. Default is "ESG constraint".
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+        """
         self.new_figure()
         if sectors_weights is None:
             sectors_weights = self.get_sectors_evolution(ESG_range, save, source)
@@ -393,6 +641,18 @@ class ESG_Portfolio(Portfolio):
         self.make_title_save("_Evolution_{mini}to{maxi}_".format(mini = min(ESG_range), maxi = max(ESG_range)), n_risky, save, source)
         
     def plot_sharpe_exclusion(self, sharpes, threshold_list, save, source, eng = True, esg_levels = False, esgs = None):      
+        """
+        Plot the Sharpe ratio as a function of the number of excluded worst ESG assets.
+
+        Parameters:
+            sharpes (list of float): List of Sharpe ratios.
+            threshold_list (list of int): List of exclusion thresholds.
+            save (bool): Whether to save the plot.
+            source (str): ESG provider for the plot title.
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+            esg_levels (bool, optional): If True, adds a secondary x-axis with ESG levels. Default is False.
+            esgs (list of float, optional): List of ESG values. Default is None.
+        """
         self.ax.plot(threshold_list, sharpes, label = source)
         
         n_risky = len(self.mu)
@@ -422,6 +682,16 @@ class ESG_Portfolio(Portfolio):
         self.make_title_save("_Sharpe_Exclusion_ESG_", n_risky, save) 
     
     def plot_esg_exclusion(self, ESGs, threshold_list, save, source, eng = True):      
+        """
+        Plot the portfolio ESG score as a function of the number of excluded worst ESG assets.
+
+        Parameters:
+            ESGs (list of float): List of ESG scores.
+            threshold_list (list of int): List of exclusion thresholds.
+            save (bool): Whether to save the plot.
+            source (str): ESG provider for the plot title.
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+        """        
         self.ax.plot(threshold_list, ESGs, label = source)
         
         n_risky = len(self.mu)
@@ -443,7 +713,17 @@ class ESG_Portfolio(Portfolio):
         self.ax.legend()
         self.make_title_save("_ESG_Exclusion_", n_risky, save) 
         
-    def plot_esg_exclusions(self, ESGs_list, threshold_list, save, eng = True, gaussian = False):
+    def plot_esg_exclusions(self, ESGs_list, threshold_list, save = False, eng = True, gaussian = False):
+        """
+        Plot the portfolio ESG score as a function of the number of excluded worst ESG assets.
+
+        Parameters:
+            ESGs_list (list of list of float): List containing a list of ESG scores correspondin to a confidence interval (if gaussian is False) or the 95% confidence minimum ESG (if gaussian is True).
+            threshold_list (list of int): List of exclusion thresholds.
+            save (bool, optional): Whether to save the plot.
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+            gaussian (bool, optional): If True, use Gaussian Mixture model (GMM) uncertainty. Default is False.
+        """        
         if eng:
             self.ax.plot(threshold_list, ESGs_list[2], label = 'Mean')
             self.ax.fill_between(threshold_list, ESGs_list[0], ESGs_list[1], alpha = .25, color = 'g', label = 'Min-Max ESG')
@@ -477,6 +757,16 @@ class ESG_Portfolio(Portfolio):
         self.make_title_save("_ESG_Exclusion_", n_risky, save) 
     
     def plot_sharpe_speed(self, sharpes, ESG_range, save, source, eng = True):      
+        """
+        Plot the speed of the Sharpe ratio as a function of the ESG constraint.
+
+        Parameters:
+            sharpes (list of float): List of Sharpe ratios.
+            ESG_range (list of float): List of ESG constraint values.
+            save (bool): Whether to save the plot.
+            source (str): ESG provider name for the plot title.
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+        """
         speed = np.gradient(sharpes, ESG_range)
         self.ax.plot(ESG_range, speed, label = source)
         
@@ -499,7 +789,17 @@ class ESG_Portfolio(Portfolio):
         self.ax.legend()
         self.make_title_save("_Sharpe_Speed_", n_risky, save)
         
-    def plot_sharpe(self, sharpes, ESG_range, save, source, eng = True):      
+    def plot_sharpe(self, sharpes, ESG_range, save, source, eng = True):     
+        """
+        Plot the Sharpe ratio as a function of the ESG constraint.
+
+        Parameters:
+            sharpes (list of float): List of Sharpe ratios.
+            ESG_range (list of float): List of ESG constraint values.
+            save (bool): Whether to save the plot.
+            source (str): Source information for the plot title.
+            eng (bool, optional): If True, use English labels, otherwise use French. Default is True.
+        """ 
         self.ax.plot(ESG_range, sharpes, label = source)
         
         n_risky = len(self.mu)

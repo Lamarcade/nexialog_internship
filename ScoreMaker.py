@@ -20,7 +20,34 @@ import seaborn as sns
 
 
 class ScoreMaker:
+    """
+    A class to manage and process clustering of ESG scores from various sources.
+
+    Attributes:
+    ranks (pd.DataFrame): DataFrame containing ranks of ESG scores.
+    dict_agencies (dict): Dictionary containing scores from different agencies.
+    valid_tickers (pd.Series): Series of valid tickers.
+    valid_indices (pd.Index): Indices of valid scores.
+    n_classes (int): Number of clusters to form.
+    model: The clustering model used for predictions.
+    sorted_labels (list): List of sorted cluster labels.
+    full_ranks (pd.DataFrame): DataFrame containing full ranks.
+    rank_stats (pd.DataFrame): DataFrame containing rank statistics.
+    densities (np.ndarray): Densities of the model's predictions.
+    clusters_means (pd.Series): Means of the clusters.
+    clusters_stds (pd.Series): Standard deviations of the clusters.
+    """
     def __init__(self, ranks, dict_agencies, valid_tickers, valid_indices, n_classes):
+        """
+        Initializes the ScoreMaker class.
+
+        Parameters:
+        ranks (pd.DataFrame): DataFrame containing ranks of ESG scores.
+        dict_agencies (dict): Dictionary containing scores from different agencies.
+        valid_tickers (pd.Series): Series of valid tickers.
+        valid_indices (pd.Index): Indices of valid scores.
+        n_classes (int): Number of clusters to form.
+        """
         self.ranks = ranks.copy()
         self.dict_agencies = dict_agencies
         self.valid_tickers = valid_tickers
@@ -29,11 +56,26 @@ class ScoreMaker:
     
         
     def add_class(self, labels):
+        """
+        Adds cluster labels to the scores.
+
+        Parameters:
+        labels (pd.DataFrame): DataFrame containing cluster labels.
+
+        Returns:
+        pd.DataFrame: DataFrame with cluster labels added.
+        """    
         full_scores = pd.DataFrame(self.ranks, index = self.valid_indices)
         full_scores['labels'] = labels
         return(full_scores)
     
     def cluster_hierarchical(self):
+        """
+        Performs hierarchical clustering on the ranks.
+
+        Returns:
+        pd.DataFrame: DataFrame with hierarchical clustering labels added.
+        """
         Agg = AgglomerativeClustering(n_clusters = self.n_classes)
             
         labels = pd.DataFrame(Agg.fit_predict(self.ranks), index = self.valid_indices)   
@@ -42,6 +84,12 @@ class ScoreMaker:
     
 
     def kmeans(self):
+        """
+        Performs KMeans clustering on the ranks.
+
+        Returns:
+        pd.DataFrame: DataFrame with KMeans clustering labels added.
+        """
         km = KMeans(n_clusters = self.n_classes)
             
         labels = pd.DataFrame(km.fit_predict(self.ranks), index = self.valid_indices)  
@@ -50,6 +98,16 @@ class ScoreMaker:
         return(self.add_class(labels))
 
     def classify_gaussian_mixture(self, class_proportions = None, n_mix = 50):
+        """
+        Classifies the ranks using Gaussian Mixture Model.
+
+        Parameters:
+        class_proportions (dict, optional): Proportions of each class.
+        n_mix (int, optional): Number of mixtures to try.
+
+        Returns:
+        tuple: DataFrame with Gaussian Mixture Model labels added and the maximum Kendall tau score.
+        """
         if not(class_proportions is None):
             # Calculate weights for each cluster based on class proportions
             weights = np.array(list(class_proportions.values()))
@@ -86,6 +144,16 @@ class ScoreMaker:
         return full_scores, taumax
     
     def gmm_1d(self, class_proportions = None, n_mix = 50):
+        """
+        Classifies the ranks using 1D Gaussian Mixture Model.
+
+        Parameters:
+        class_proportions (dict, optional): Proportions of each class.
+        n_mix (int, optional): Number of mixtures to try.
+
+        Returns:
+        tuple: DataFrame with 1D Gaussian Mixture Model labels added and the maximum Kendall tau score.
+        """
         if not(class_proportions is None):
             # Calculate weights for each cluster based on class proportions
             weights = np.array(list(class_proportions.values()))
@@ -120,12 +188,27 @@ class ScoreMaker:
         return full_scores, taumax
     
     def get_predictions(self):
+        """
+        Gets the predictions from the clustering model.
+
+        Returns:
+        pd.DataFrame: DataFrame with clustering labels added.
+        """
         labels = pd.DataFrame(self.model.predict(self.ranks), index = self.valid_indices)
         full_scores = self.add_class(labels)
         return(full_scores)
 
     def make_score(self, full_scores, n_classes = 7):
-        
+        """
+        Creates a score based on the clustering labels.
+
+        Parameters:
+        full_scores (pd.DataFrame): DataFrame containing the full scores with labels.
+        n_classes (int, optional): Number of classes for scoring.
+
+        Returns:
+        pd.DataFrame: DataFrame with ESG scores.
+        """    
         mean_ranks = full_scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
         global_mean_ranks = global_mean_ranks.sort_values()
@@ -155,7 +238,17 @@ class ScoreMaker:
         return ESGTV
     
     def make_score_2(self, full_scores, n_classes = 7, gaussian = True):
-        
+        """
+        Creates a score based on the clustering labels with additional statistics.
+
+        Parameters:
+        full_scores (pd.DataFrame): DataFrame containing the full scores with labels.
+        n_classes (int, optional): Number of classes for scoring.
+        gaussian (bool, optional): Whether to use Gaussian statistics.
+
+        Returns:
+        pd.DataFrame: DataFrame with ESG scores.
+        """        
         scores = full_scores.copy()
         mean_ranks = scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
@@ -195,6 +288,15 @@ class ScoreMaker:
     
     
     def quantiles_mixture(self, alpha = 0.95):
+        """
+        Calculates the quantiles for the mixture model.
+
+        Parameters:
+        alpha (float, optional): Quantile level.
+
+        Returns:
+        list: List of quantiles for each sample.
+        """
         densities = self.model.predict_proba(self.ranks) # shape nsamples x ncomponents
         
         def goal(x, weights, means, stds):
@@ -221,15 +323,34 @@ class ScoreMaker:
         return roots
     
     def set_cluster_parameters(self):
+        """
+        Sets the cluster parameters such as densities, means, and standard deviations.
+        """
         self.densities = self.model.predict_proba(self.ranks)
         rank_stats = self.rank_stats.copy()
         self.clusters_means = rank_stats.sort_values(by = 'labels')["mean"]
         self.clusters_stds = rank_stats.sort_values(by = 'labels')["cluster_std"]
         
     def get_cluster_parameters(self):
+        """
+        Gets the cluster parameters.
+
+        Returns:
+        tuple: Densities, cluster means, and cluster standard deviations.
+        """
         return(self.densities, self.clusters_means, self.clusters_stds)
     
     def score_uncertainty(self, full_scores, eta = 1):
+        """
+        Calculates a manual uncertainty of the ESG scores.
+
+        Parameters:
+        full_scores (pd.DataFrame): DataFrame containing the full scores with labels.
+        eta (float, optional): Scaling factor for the uncertainty. Default is 1.
+
+        Returns:
+        tuple: DataFrame with ESG scores, mean ranks, left and right uncertainty intervals.
+        """
         scores = full_scores.copy()
         mean_ranks = scores.groupby('labels').mean()
         global_mean_ranks = mean_ranks.mean(axis = 1)
@@ -300,16 +421,37 @@ class ScoreMaker:
         return ESGTV, mean_ranks, left_inc, right_inc
     
     def save_model(self,filename = 'model.pkl'):
+        """
+        Saves the clustering model to a file.
+
+        Parameters:
+        filename (str, optional): Filename to save the model. Default is 'model.pkl'.
+        """
         with open(filename,'wb') as f:
             pickle.dump(self.model,f)
 
 
     def load_model(self,filename = 'model.pkl'):
+        """
+        Loads the clustering model from a file.
+
+        Parameters:
+        filename (str, optional): Filename to load the model from. Default is 'model.pkl'.
+        """
         with open(filename, 'rb') as f:
            model = pickle.load(f)
            self.model = model
     
     def get_mean_ranks(self, labels_column = 'sorted_labels'):
+        """
+        Calculates the mean ranks for each cluster.
+
+        Parameters:
+        labels_column (str, optional): The column name for cluster labels. Default is 'sorted_labels'.
+
+        Returns:
+        pd.DataFrame: DataFrame containing mean ranks for each cluster.
+        """
         agencies = self.full_ranks.columns[:4]
         rank_df = pd.DataFrame(columns = agencies)
         dfc = self.full_ranks.copy()
@@ -320,6 +462,15 @@ class ScoreMaker:
         return rank_df
 
     def get_std_ranks(self, labels_column = 'sorted_labels'):
+        """
+        Calculates the standard deviation of ranks for each cluster.
+
+        Parameters:
+        labels_column (str, optional): The column name for cluster labels. Default is 'sorted_labels'.
+
+        Returns:
+        pd.DataFrame: DataFrame containing standard deviations of ranks for each cluster.
+        """
         agencies = self.full_ranks.columns[:4]
         rank_df = pd.DataFrame(columns = agencies)
         dfc = self.full_ranks.copy()
@@ -330,6 +481,14 @@ class ScoreMaker:
         return rank_df
     
     def plot_rank_uncer(self, tri_ranks, save = True, eng = True):
+        """
+        Plots the uncertainty of the ESG ranks.
+
+        Parameters:
+        tri_ranks (list): List of three ranks for the plot acting as a confidence interval (in the order min-max-mean).
+        save (bool, optional): Whether to save the plot. Default is True.
+        eng (bool, optional): Whether to use English labels. Default is True.
+        """
         fig_size = (8,6)
         sns.set_theme()
         self.fig, self.ax = plt.subplots(figsize=fig_size)

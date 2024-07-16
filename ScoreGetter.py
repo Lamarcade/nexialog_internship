@@ -10,7 +10,33 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 class ScoreGetter:
+    """
+    A class to manage and process ESG scores from various sources.
+
+    Attributes:
+    MS (pd.DataFrame): DataFrame containing MSCI scores.
+    SU (pd.DataFrame): DataFrame containing Sustainalytics scores.
+    SP (pd.DataFrame): DataFrame containing S&P scores.
+    RE (pd.DataFrame): DataFrame containing Refinitiv scores.
+    tickerlist (pd.Series): List of tickers from MSCI scores.
+    MSS (pd.DataFrame): Processed MSCI scores.
+    SUS (pd.DataFrame): Processed Sustainalytics scores.
+    SPS (pd.DataFrame): Processed S&P scores.
+    RES (pd.DataFrame): Processed Refinitiv scores.
+    dict_agencies (dict): Dictionary of scores from different agencies.
+    valid_indices (pd.Index): Indices of valid scores.
+    valid_tickers (pd.Series): Valid tickers after filtering.
+    sector_df (pd.DataFrame): DataFrame containing sector information.
+    valid_sector_df (pd.DataFrame): DataFrame containing valid sector information.
+    score_df (pd.DataFrame): DataFrame containing processed score information.
+    """
     def __init__(self, path):
+        """
+        Initializes the ScoreGetter class.
+
+        Parameters:
+        path (str): Path to the directory containing the score files.
+        """
         # Files containing the scores
         msci = 'MSCI scores.csv'
         sust = 'scores_sust_colnames.csv'
@@ -54,15 +80,39 @@ class ScoreGetter:
         self.tickerlist = MS['Colonne2']
         
     def set_scores(self, MSS, SUS, SPS, RES):
+        """
+        Sets the processed scores.
+
+        Parameters:
+        MSS (pd.DataFrame): Processed MSCI scores.
+        SUS (pd.DataFrame): Processed Sustainalytics scores.
+        SPS (pd.DataFrame): Processed S&P scores.
+        RES (pd.DataFrame): Processed Refinitiv scores.
+
+        Returns:
+        None
+        """
         self.MSS = MSS
         self.SUS = SUS
         self.SPS = SPS
         self.RES = RES
         
     def get_processed_scores(self):
+        """
+        Gets the processed scores.
+
+        Returns:
+        tuple: Processed MSCI, Sustainalytics, S&P, and Refinitiv scores.
+        """
         return(self.MSS,self.SUS, self.SPS, self.RES)
     
     def name_columns(self):
+        """
+        Renames columns in the score dataframes to standardize them.
+
+        Returns:
+        None
+        """
         MSS = self.MS.copy().rename(columns = {'Colonne2':'Tag','Colonne1':'Score'})
         SPS = self.SP.copy()
         SUS = self.SU.copy().rename(columns = {'Symbol':'Tag'})
@@ -71,6 +121,12 @@ class ScoreGetter:
         self.set_scores(MSS, SUS, SPS, RES)
         
     def transform_scores(self):
+        """
+        Transforms the scores to a scale where the higher the score, the better the performance.
+
+        Returns:
+        None
+        """
         self.name_columns()
         MS_order = {'AAA': 6, 'AA': 5, 'A': 4, 'BBB': 3, 'BB': 2, 'B': 1, 'CCC': 0}
         
@@ -81,45 +137,109 @@ class ScoreGetter:
         self.SUS['Score'] = self.SUS['Score'].map(reverse)
         
     def reduce(self):
+        """
+        Reduces the score dataframes to include only the 'Tag' and 'Score' columns.
+
+        Returns:
+        None
+        """
         self.MSS = self.MSS[['Tag', 'Score']]
         self.SPS = self.SPS[['Tag', 'Score']]
         self.SUS = self.SUS[['Tag', 'Score']]
         self.RES = self.RES[['Tag', 'Score']]
     
     def reduced_df(self): 
+        """
+        Transforms and reduces the score dataframes.
+
+        Returns:
+        None
+        """
         self.transform_scores()
         self.reduce()
         
     def homogen_df(self): 
-        # Homogeneise but do not reduce
+        """
+        Homogenizes the score dataframes without reducing them.
+
+        Returns:
+        None
+        """
         self.transform_scores()
 
     def reduced_mixed_df(self): 
-        # Reduce but do not transform
+        """
+        Reduces the score dataframes without transforming them.
+
+        Returns:
+        None
+        """
         self.name_columns()
         self.reduce()
         
     def make_dict(self):
+        """
+        Creates a dictionary of scores from different agencies.
+
+        Returns:
+        None
+        """
         self.dict_agencies = {'MS':  self.MSS['Score'], 'SU': self.SUS['Score'], 
                          'SP' : self.SPS['Score'], 'RE': self.RES['Score']}
     
     def get_dict(self):
+        """
+        Gets the dictionary of scores from different agencies.
+
+        Returns:
+        dict: Dictionary of scores.
+        """
         return(self.dict_agencies)
     
     def get_valid_indices(self):
+        """
+        Gets the indices of valid scores.
+
+        Returns:
+        pd.Index: Indices of valid scores.
+        """
         return self.valid_indices
     
     def get_valid_tickers(self):
+        """
+        Gets the valid tickers after filtering.
+
+        Returns:
+        pd.Series: Valid tickers.
+        """
         return self.valid_tickers
         
     def get_new_df(self):
+        """
+        Creates a new DataFrame from the dictionary of scores.
+
+        Returns:
+        pd.DataFrame: DataFrame of scores from different agencies.
+        """
         self.make_dict()
         return(pd.DataFrame(self.dict_agencies))
     
     def get_score_df(self):
+        """
+        Gets the DataFrame containing processed score information.
+
+        Returns:
+        pd.DataFrame: DataFrame of processed scores.
+        """
         return self.score_df
     
     def keep_valid(self):
+        """
+        Filters the score DataFrame to keep only valid scores.
+
+        Returns:
+        pd.DataFrame: DataFrame of valid scores.
+        """
         score_df = self.get_new_df()
         scores_valid = score_df[~(score_df.isna().any(axis=1))]
         self.valid_indices = scores_valid.index
@@ -127,25 +247,61 @@ class ScoreGetter:
         return (scores_valid)
     
     def set_valid_df(self):
+        """
+        Sets the DataFrame of valid scores.
+
+        Returns:
+        None
+        """
         self.score_df = self.keep_valid()
     
     def standardise_df(self):
+        """
+        Standardizes the score DataFrame.
+
+        Returns:
+        pd.DataFrame: Standardized score DataFrame.
+        """
         score_df = self.get_score_df()
         score_df = (score_df - score_df.mean()) / score_df.std()
         return(score_df)
     
     def min_max_df(self):
+        """
+        Applies min-max scaling to the score DataFrame.
+
+        Returns:
+        pd.DataFrame: Min-max scaled score DataFrame.
+        """
         score_df = self.get_score_df()
         score_df = (score_df - score_df.min()) / (score_df.max()-score_df.min())
         return(score_df)
     
     def get_rank_df(self, method = 'min'):
+        """
+        Ranks the scores using a specified method.
+
+        Parameters:
+        method (str): Method to use for ranking.
+
+        Returns:
+        pd.DataFrame: DataFrame of ranked scores.
+        """
         scores_valid = self.keep_valid()
         scores_ranks = scores_valid.copy()
         scores_ranks = scores_ranks.rank(method = method)
         return(scores_ranks)
     
     def ticker_sector(self, NCAIS = True):
+        """
+        Maps tickers to sectors based on the NCAIS code.
+
+        Parameters:
+        NCAIS (bool): If True, use NCAIS codes for mapping.
+
+        Returns:
+        None
+        """
         NCAIS_map = {
         '11':	'AGRI Agriculture, Forestry, Fishing and Hunting',
         '21':	'MINI Mining, Quarrying, and Oil and Gas Extraction',
@@ -181,13 +337,37 @@ class ScoreGetter:
         self.sector_df = RE_sector[['Tag', 'Sector']]
         
     def valid_ticker_sector(self):
+        """
+        Filters the sector DataFrame to keep only valid sectors.
+
+        Returns:
+        None
+        """
         self.ticker_sector()
         self.valid_sector_df = self.sector_df.copy().loc[self.valid_indices]
         
     def get_valid_sector_df(self):
+        """
+        Gets the DataFrame containing valid sector information.
+
+        Returns:
+        pd.DataFrame: DataFrame of valid sectors.
+        """
         return self.valid_sector_df
     
-    def worst_score(self, scores_ranks, n_classes = 7, reverse = False, get_all = False):
+    def worst_score(self, scores_ranks, n_classes = 7, reverse = False, get_all = False):        
+        """
+        Computes the worst or best score across different agencies.
+
+        Parameters:
+        scores_ranks (pd.DataFrame): DataFrame of ranked scores.
+        n_classes (int): Number of classes to divide the scores into.
+        reverse (bool): If True, take the best score instead.
+        get_all (bool): If True, return all intermediate results.
+
+        Returns:
+        pd.DataFrame: DataFrame of worst scores.
+        """
         ranks = scores_ranks.copy()
         
         # Transforms the ranks into 0 to n_classes-1 scores
@@ -218,6 +398,18 @@ class ScoreGetter:
         return(res)
     
     def worst_std_score(self, std_scores, n_classes = 7, reverse = False, get_all = False):
+        """
+        Computes the worst or best standardized score across different agencies.
+
+        Parameters:
+        std_scores (pd.DataFrame): DataFrame of standardized scores.
+        n_classes (int): Number of classes to divide the scores into.
+        reverse (bool): If True, take the best score instead.
+        get_all (bool): If True, return all intermediate results.
+
+        Returns:
+        pd.DataFrame: DataFrame of worst standardized scores.
+        """
         std_df = std_scores.copy()
         list_scores = list(range(n_classes))
         
@@ -242,6 +434,19 @@ class ScoreGetter:
         return(res)
     
     def plot_distributions(self, df, dist_type, shrink = 1, n = 4, eng = True):
+        """
+        Plot the score distributions in a given DataFrame.
+
+        Parameters:
+        df (pd.DataFrame): DataFrame of  scores.
+        dist_type (str): Description of the score distributions.
+        shrink (float): Shrink parameter of the seaborn histogram. Defaults to 1
+        n (int): Number of distributions in the DataFrame. Defaults to 4
+        eng (bool): If True, plot titles and labels in English; otherwise, in French. Defaults to True
+
+        Returns:
+        pd.DataFrame: DataFrame of worst standardized scores.
+        """
         cmap = 'GnBu_d'
         sns.set_theme(style="darkgrid")
         fig, ax = plt.subplots(n, 1, figsize=(10, 16), constrained_layout=True)
